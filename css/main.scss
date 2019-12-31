@@ -1,0 +1,306 @@
+@import "utilities";
+@import "runtime";
+
+$white: #fff;
+
+$gray200: #edf2f7;
+$gray400: #cbd5e0;
+$gray600: #718096;
+$gray800: #2d3748;
+$gray900: #1a202c;
+
+$blue100: #ebf8ff;
+$blue200: #bee3f8;
+$blue300: #90cdf4;
+$blue400: #63b3ed;
+$blue500: #4299e1;
+$blue600: #3182ce;
+$blue700: #2b6cb0;
+$blue800: #2c5282;
+$blue900: #2a4365;
+
+$baseZIndex: 10;
+
+.ws-app {
+  width: 100%;
+  background: $white;
+  display: flex;
+
+  &.is-dragging {
+    cursor: grabbing !important;
+  }
+}
+
+.ws-editor {
+  width: 100%;
+  overflow: visible;
+  padding: 20px;
+}
+
+.ws-right-panel {
+  width: 395px;
+  flex-shrink: 0;
+}
+
+.ws-input {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid $gray600;
+  padding: 4px;
+  border-radius: 2px;
+}
+
+.ws-draggable-item {
+  display: inline-block;
+  cursor: grab;
+  width: 70px;
+  height: 60px;
+  border: 1px solid $gray400;
+  border-radius: 3px;
+  overflow: hidden;
+  margin-left: 5px;
+  margin-top: 5px;
+  text-align: center;
+  font-size: 13px;
+  text-transform: uppercase;
+  font-weight: bold;
+  color: $gray600;
+
+  svg {
+    display: block;
+    margin: 5px auto;
+    fill: $gray600;
+  }
+}
+
+.ws-item-being-dragged {
+  position: absolute;
+  z-index: $baseZIndex;
+
+  border: 1px solid black;
+  padding: 5px;
+  background: white;
+
+  // It's important to disable pointer-events so that onMouseEnter and
+  // onMouseLeave works properly on the drop targets.
+  pointer-events: none;
+}
+
+.ws-drop-target {
+  position: absolute;
+  z-index: $baseZIndex - 1;
+
+  height: 4px;
+  background: $blue600;
+  pointer-events: none;
+  display: flex;
+  justify-content: center;
+
+  .ws-drop-target-text {
+    height: 20px;
+    background: $blue600;
+    color: $blue100;
+
+    padding: 0 5px;
+    margin-top: -10px;
+    border-radius: 10px;
+  }
+}
+
+// An email is represent by a list of rows. Each row has or more blocks depending
+// on its layout (100, 50x50, 33x33x33, etc.). This class represents a row that
+// contains one or more blocks.
+.ws-row {
+  position: relative;
+  width: 100%;
+  margin: 0 auto;
+  padding: 0 10%;
+  background: $gray200;
+  box-sizing: border-box;
+
+  .ws-row-hover {
+    z-index: 9;
+    pointer-events: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    margin-left: -2px;
+    margin-top: -2px;
+    width: calc(100% + 4px);
+    height: calc(100% + 4px);
+    border: 2px solid $blue300;
+    border-radius: 3px;
+    box-sizing: border-box;
+
+    &.ws-selected {
+      border-color: $blue500;
+
+      .ws-move-icon {
+        background: $blue500;
+      }
+    }
+
+    .ws-move-icon {
+      cursor: grab;
+      padding: 3px;
+      position: absolute;
+      pointer-events: auto;
+      height: 18px;
+      background: $blue300;
+      top: 0;
+      right: 0;
+      color: $white;
+      border-top-left-radius: 2px;
+      border-bottom-left-radius: 2px;
+    }
+  }
+}
+
+// A row contains one or more blocks depending on the layout (100, 50x50, 33x33x33, etc.).
+// Each block contains a list of content - but it starts empty. This class is applied to
+// empty blocks, that is, blocks with an empty list of content.
+.ws-empty-block {
+  background: $blue200;
+  height: 50px;
+  border: 1px dashed $blue500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: $blue600;
+  font-size: 13px;
+
+  &.drop-target {
+    background: $blue600;
+    border-color: $blue700;
+    color: $blue900;
+  }
+}
+
+.ws-divider {
+  height: 1px;
+  background: black;
+  margin: 5px 0;
+}
+
+.ws-content {
+  position: relative;
+
+  .ws-content-hover {
+    z-index: 9;
+    pointer-events: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    margin-left: -2px;
+    margin-top: -2px;
+    width: calc(100% + 4px);
+    height: calc(100% + 4px);
+    border: 2px solid $blue300;
+    border-radius: 3px;
+    box-sizing: border-box;
+
+    &.ws-selected {
+      border-color: $blue500;
+
+      .ws-move-icon {
+        background: $blue500;
+      }
+    }
+
+    .ws-move-icon {
+      cursor: grab;
+      padding: 3px;
+      position: absolute;
+      pointer-events: auto;
+      height: 18px;
+      background: $blue300;
+      top: 0;
+      right: 0;
+      color: $white;
+      border-top-left-radius: 2px;
+      border-bottom-left-radius: 2px;
+    }
+  }
+}
+
+// The header of the editor displays what is currently being edited. For example,
+// when the user selects an image content, the header display "Editing image" along
+// with buttons on the right to remove and unselect the selected item.
+.ws-editor-header {
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid $gray400;
+  padding: 5px;
+
+  .ws-editor-header-text {
+    font-weight: bold;
+    margin-right: auto;
+  }
+
+  // The header displays some buttons on the right. The buttons are pushed to the right
+  // because .ws-editor-header-text has 'margin-right: auto'.
+  button {
+    border: none;
+    background: none;
+    fill: $gray600;
+  }
+}
+
+.ws-editor-section {
+  padding: 10px;
+  border-top: 1px solid $gray400;
+  font-size: 14px;
+  color: $gray800;
+
+  &--inline {
+    display: flex;
+    align-items: center;
+
+    .ws-editor-section-header {
+      margin-right: auto;
+    }
+  }
+
+  .ws-editor-section-header {
+    text-transform: uppercase;
+    font-size: 14px;
+    font-weight: bold;
+    color: $gray600;
+  }
+}
+
+.ws-button-group {
+  button {
+    border: 1px solid $gray400;
+    background: none;
+    fill: $gray600;
+    border-radius: 2px;
+    margin-left: 5px;
+    cursor: pointer;
+  }
+
+  button.ws-active {
+    border-color: $blue700;
+    fill: $blue800;
+  }
+}
+
+.ws-colorpicker {
+  .ws-colorpicker-row {
+    display: flex;
+    margin-top: 1px;
+  }
+
+  .ws-colorpicker-color {
+    width: 12px;
+    height: 12px;
+    margin-right: 1px;
+    box-sizing: border-box;
+
+    &.selected {
+      transform: scale(1.5);
+      border: 1px solid $white;
+    }
+  }
+}

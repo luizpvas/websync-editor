@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src="/main.js"></script>
+    <style>
+      hmtl,
+      body {
+        background: #dfdfdf;
+        font-family: sans-serif;
+      }
+    </style>
+
+    <script>
+      window.addEventListener("load", () => {
+        let editor = document.querySelector("#editor");
+
+        editor.uploadHandler((file, progress, done) => {
+          let xhr = new XMLHttpRequest();
+
+          xhr.upload.onprogress = evt => {
+            let percentage = Math.ceil((evt.loaded / evt.total) * 100);
+            progress(percentage);
+          };
+
+          xhr.onreadystatechange = () => {
+            if (xhr.readyState == 4) {
+              if (xhr.status == 201) {
+                let response = JSON.parse(xhr.responseText);
+                done(response.url);
+              } else {
+                done();
+              }
+            }
+          };
+
+          xhr.open("POST", "http://v4.test/v5/api/file_uploads", true);
+
+          let formData = new FormData();
+          formData.append(
+            "project_token",
+            "0ac6gaxiionjjw8u3fzr7prkzz8rlrlqabmgmapi"
+          );
+          formData.append("file", file);
+          xhr.send(formData);
+        });
+      });
+    </script>
+  </head>
+  <body>
+    <div style="width: 950px; margin: 0 auto;">
+      <websync-editor id="editor"></websync-editor>
+    </div>
+  </body>
+</html>
