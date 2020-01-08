@@ -2,6 +2,8 @@ module Dnd exposing
     ( ContentTarget(..)
     , DragState(..)
     , RowTarget(..)
+    , applyChanges
+    , calculateDeltaPercentageX
     , calculateRowTarget
     , clearTargetContent
     , clearTargetRow
@@ -16,12 +18,14 @@ module Dnd exposing
     )
 
 import BlockId exposing (BlockId)
+import Content exposing (Content)
 import ContentId exposing (ContentId)
 import DomElement exposing (DomElement)
 import Editor
 import Html exposing (Attribute)
 import Html.Events exposing (preventDefaultOn)
 import Json.Decode as Decode
+import Row exposing (Row)
 import RowId exposing (RowId)
 
 
@@ -47,8 +51,9 @@ onMouseDown toMsg =
 
 type DragState
     = NotDragging
-    | DraggingRow Editor.Row Coordinate RowTarget
-    | DraggingContent Editor.Content Coordinate ContentTarget
+    | DraggingRow Row Coordinate RowTarget
+    | DraggingContent Content.Content Coordinate ContentTarget
+    | ResizingBlocks RowId BlockId BlockId DomElement
 
 
 type alias Coordinate =
@@ -61,6 +66,9 @@ type RowTarget
     = NoTargetRow
     | BeforeRow RowId DomElement
     | AfterRow RowId DomElement
+      -- This is a weird state when the user enters the row through the fade underneath. The cursor
+      -- isn't technically inside the row, but we need to keep track of the row's rect.
+    | NoTargetButHoveringRow RowId DomElement
 
 
 type ContentTarget
@@ -70,12 +78,12 @@ type ContentTarget
     | FirstOfBlock BlockId
 
 
-startDraggingContent : Editor.Content -> Int -> Int -> DragState
+startDraggingContent : Content -> Int -> Int -> DragState
 startDraggingContent content x y =
     DraggingContent content { x = x, y = y } NoTargetContent
 
 
-startDraggingRow : Editor.Row -> Int -> Int -> DragState
+startDraggingRow : Row -> Int -> Int -> DragState
 startDraggingRow row x y =
     DraggingRow row { x = x, y = y } NoTargetRow
 
@@ -86,26 +94,29 @@ drop email dragState =
         DraggingRow row _ target ->
             case target of
                 AfterRow afterRow _ ->
-                    if Editor.rowId row == afterRow then
+                    if row.id == afterRow then
                         -- If we're dragging the row before/after itself,
                         -- there is nothing to do.
                         email
 
                     else
                         email
-                            |> Editor.removeRow (Editor.rowId row)
+                            |> Editor.removeRow row.id
                             |> Editor.addRowAfterAnotherRow row afterRow
 
                 BeforeRow beforeRow _ ->
-                    if Editor.rowId row == beforeRow then
+                    if row.id == beforeRow then
                         -- If we're dragging the row before/after itself,
                         -- there is nothing to do.
                         email
 
                     else
                         email
-                            |> Editor.removeRow (Editor.rowId row)
+                            |> Editor.removeRow row.id
                             |> Editor.addRowBeforeAnotherRow row beforeRow
+
+                NoTargetButHoveringRow _ _ ->
+                    email
 
                 NoTargetRow ->
                     email
@@ -113,34 +124,37 @@ drop email dragState =
         DraggingContent item xy target ->
             case target of
                 AfterContent afterId _ ->
-                    if Editor.contentId item == afterId then
+                    if Content.contentId item == afterId then
                         -- If we're dragging the content after/before itself,
                         -- there is no work to do.
                         email
 
                     else
                         email
-                            |> Editor.removeContent (Editor.contentId item)
+                            |> Editor.removeContent (Content.contentId item)
                             |> Editor.addContentAfterAnotherContent item afterId
 
                 BeforeContent beforeId _ ->
-                    if Editor.contentId item == beforeId then
+                    if Content.contentId item == beforeId then
                         -- If we're dragging the content after/before itself,
                         -- there is no work to do.
                         email
 
                     else
                         email
-                            |> Editor.removeContent (Editor.contentId item)
+                            |> Editor.removeContent (Content.contentId item)
                             |> Editor.addContentBeforeAnotherContent item beforeId
 
                 FirstOfBlock blockId ->
                     email
-                        |> Editor.removeContent (Editor.contentId item)
+                        |> Editor.removeContent (Content.contentId item)
                         |> Editor.addFirstContentToBlock item blockId
 
                 NoTargetContent ->
                     email
+
+        ResizingBlocks _ _ _ _ ->
+            email
 
         NotDragging ->
             email
@@ -158,6 +172,9 @@ clearTargetRow dragState =
         DraggingContent _ _ _ ->
             dragState
 
+        ResizingBlocks _ _ _ _ ->
+            dragState
+
         NotDragging ->
             dragState
 
@@ -170,6 +187,9 @@ clearTargetContent dragState =
 
         DraggingContent content coordinate _ ->
             DraggingContent content coordinate NoTargetContent
+
+        ResizingBlocks _ _ _ _ ->
+            dragState
 
         NotDragging ->
             dragState
@@ -190,6 +210,9 @@ mapCoordinate xy state =
                 AfterRow afterRow element ->
                     DraggingRow row xy (calculateRowTarget xy afterRow element)
 
+                NoTargetButHoveringRow hoverRow element ->
+                    DraggingRow row xy (calculateRowTarget xy hoverRow element)
+
                 NoTargetRow ->
                     DraggingRow row xy NoTargetRow
 
@@ -207,8 +230,33 @@ mapCoordinate xy state =
                 NoTargetContent ->
                     DraggingContent content xy NoTargetContent
 
+        ResizingBlocks _ _ _ _ ->
+            state
+
         NotDragging ->
-            NotDragging
+            state
+
+
+{-| Some drag states applies changes as the dragging happens. This is the case
+for `ResizingBlocks`, for example. This function applies those changes to the email.
+-}
+applyChanges : Coordinate -> DragState -> Editor.Email -> Editor.Email
+applyChanges deltas state email =
+    case state of
+        DraggingRow _ _ _ ->
+            email
+
+        DraggingContent _ _ _ ->
+            email
+
+        ResizingBlocks rowId leftId rightId element ->
+            Editor.resizeBlocks leftId
+                rightId
+                (calculateDeltaPercentageX deltas element.width)
+                email
+
+        NotDragging ->
+            email
 
 
 {-| Updates the dragging row target based on the given hovered row. This function
@@ -223,6 +271,9 @@ mapRowTarget rowId element dragState =
         DraggingContent _ _ _ ->
             dragState
 
+        ResizingBlocks _ _ _ _ ->
+            dragState
+
         NotDragging ->
             dragState
 
@@ -235,6 +286,9 @@ mapContentTarget contentId element dragState =
 
         DraggingContent item xy _ ->
             DraggingContent item xy (calculateContentTarget xy contentId element)
+
+        ResizingBlocks _ _ _ _ ->
+            dragState
 
         NotDragging ->
             dragState
@@ -253,6 +307,9 @@ isDragging state =
             True
 
         DraggingContent _ _ _ ->
+            True
+
+        ResizingBlocks _ _ _ _ ->
             True
 
 
@@ -282,7 +339,7 @@ calculateRowTarget dragXY rowId element =
             AfterRow rowId element
 
     else
-        NoTargetRow
+        NoTargetButHoveringRow rowId element
 
 
 calculateContentTarget : Coordinate -> ContentId -> DomElement -> ContentTarget
@@ -309,3 +366,8 @@ calculateContentTarget dragXY contentId element =
 
     else
         NoTargetContent
+
+
+calculateDeltaPercentageX : Coordinate -> Int -> Float
+calculateDeltaPercentageX xy width =
+    toFloat xy.x / (toFloat width * 0.8)

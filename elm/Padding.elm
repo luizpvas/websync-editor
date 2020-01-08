@@ -1,8 +1,10 @@
-module Padding exposing (Padding, all, default, editor, mapBottom, mapLeft, mapRight, mapTop)
+module Padding exposing (Msg, Padding, attributes, decoder, default, editor, editorTopAndBottom, encode, map, render)
 
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
+import Json.Decode as Decode exposing (Decoder)
+import Json.Encode as Encode exposing (Value)
 import UI
 
 
@@ -15,76 +17,174 @@ type alias Padding =
     }
 
 
-default : Padding
-default =
-    { all = 0
-    , top = 0
-    , right = 0
-    , bottom = 0
-    , left = 0
+type Msg
+    = All Int
+    | Top Int
+    | Right Int
+    | TopAndBottom Int
+    | Bottom Int
+    | Left Int
+
+
+default : Int -> Padding
+default all =
+    { all = all
+    , top = all
+    , right = all
+    , bottom = all
+    , left = all
     }
 
 
-all : Int -> Padding
-all padding =
-    { all = padding
-    , top = padding
-    , right = padding
-    , bottom = padding
-    , left = padding
-    }
+map : Msg -> Padding -> Padding
+map msg padding =
+    case msg of
+        All all ->
+            { all = all
+            , top = all
+            , right = all
+            , bottom = all
+            , left = all
+            }
+
+        Top top ->
+            { padding | top = top }
+
+        Right right ->
+            { padding | right = right }
+
+        Bottom bottom ->
+            { padding | bottom = bottom }
+
+        Left left ->
+            { padding | left = left }
+
+        TopAndBottom val ->
+            { padding | all = val, top = val, bottom = val }
 
 
-mapTop : Int -> Padding -> Padding
-mapTop top padding =
-    { padding | top = top }
+
+-- Rendering
 
 
-mapRight : Int -> Padding -> Padding
-mapRight right padding =
-    { padding | right = right }
+attributes : Padding -> List (Attribute msg)
+attributes padding =
+    let
+        attr =
+            \attrName val ->
+                if val == 0 then
+                    Nothing
+
+                else
+                    Just <| style attrName (String.fromInt val ++ "px")
+    in
+    [ attr "padding-top" padding.top
+    , attr "padding-right" padding.right
+    , attr "padding-bottom" padding.bottom
+    , attr "padding-left" padding.left
+    ]
+        |> List.filterMap identity
 
 
-mapBottom : Int -> Padding -> Padding
-mapBottom bottom padding =
-    { padding | bottom = bottom }
+render : Padding -> String
+render padding =
+    let
+        attr =
+            \attrName val ->
+                if val == 0 then
+                    Nothing
+
+                else
+                    Just <| attrName ++ ": " ++ String.fromInt val ++ "px;"
+    in
+    [ attr "padding-top" padding.top
+    , attr "padding-right" padding.right
+    , attr "padding-bottom" padding.bottom
+    , attr "padding-left" padding.left
+    ]
+        |> List.filterMap identity
+        |> String.join ""
 
 
-mapLeft : Int -> Padding -> Padding
-mapLeft left padding =
-    { padding | left = left }
+
+-- Views
 
 
 type alias ViewConfig msg =
     { padding : Padding
-    , setAll : Int -> msg
-    , setTop : Int -> msg
-    , setRight : Int -> msg
-    , setBottom : Int -> msg
-    , setLeft : Int -> msg
+    , onInput : Msg -> msg
     }
 
 
 editor : ViewConfig msg -> Html msg
 editor view =
     div []
-        [ input [ type_ "range", Html.Attributes.min "0", Html.Attributes.max "50", value (String.fromInt view.padding.all), onIntInput view.setAll ] []
+        [ input
+            [ type_ "range"
+            , Html.Attributes.min "0"
+            , Html.Attributes.max "50"
+            , value (String.fromInt view.padding.all)
+            , onIntInput All view.onInput
+            ]
+            []
         , UI.divider
-        , input [ value (String.fromInt view.padding.top), onIntInput view.setTop ] []
-        , input [ value (String.fromInt view.padding.right), onIntInput view.setRight ] []
-        , input [ value (String.fromInt view.padding.bottom), onIntInput view.setBottom ] []
-        , input [ value (String.fromInt view.padding.left), onIntInput view.setLeft ] []
+        , input [ value (String.fromInt view.padding.top), onIntInput Top view.onInput ] []
+        , input [ value (String.fromInt view.padding.right), onIntInput Right view.onInput ] []
+        , input [ value (String.fromInt view.padding.bottom), onIntInput Bottom view.onInput ] []
+        , input [ value (String.fromInt view.padding.left), onIntInput Left view.onInput ] []
         ]
 
 
-onIntInput : (Int -> msg) -> Attribute msg
-onIntInput toMsg =
+editorTopAndBottom : ViewConfig msg -> Html msg
+editorTopAndBottom view =
+    div []
+        [ input
+            [ type_ "range"
+            , Html.Attributes.min "0"
+            , Html.Attributes.max "50"
+            , value (String.fromInt view.padding.all)
+            , onIntInput TopAndBottom view.onInput
+            ]
+            []
+        , UI.divider
+        , input [ value (String.fromInt view.padding.top), onIntInput Top view.onInput ] []
+        , input [ value (String.fromInt view.padding.bottom), onIntInput Bottom view.onInput ] []
+        ]
+
+
+onIntInput : (Int -> Msg) -> (Msg -> msg) -> Attribute msg
+onIntInput msg toMsg =
     onInput
         (\str ->
             case String.toInt str of
                 Just num ->
-                    toMsg num
+                    toMsg (msg num)
 
                 Nothing ->
-                    toMsg 0
+                    toMsg (msg 0)
         )
+
+
+
+-- Json
+
+
+encode : Padding -> Value
+encode padding =
+    Encode.object
+        [ ( "all", Encode.int padding.all )
+        , ( "top", Encode.int padding.top )
+        , ( "right", Encode.int padding.right )
+        , ( "bottom", Encode.int padding.bottom )
+        , ( "left", Encode.int padding.left )
+        ]
+
+
+decoder : Decoder Padding
+decoder =
+    Decode.map5 Padding
+        (Decode.field "all" Decode.int)
+        (Decode.field "top" Decode.int)
+        (Decode.field "right" Decode.int)
+        (Decode.field "bottom" Decode.int)
+        (Decode.field "left" Decode.int)

@@ -1,11 +1,27 @@
-module Content.Divider exposing (Divider, Stroke, default, editor, mapColor, mapStroke, mapThickness, mapWidthPercentage)
+module Content.Divider exposing
+    ( Divider
+    , Stroke(..)
+    , decoder
+    , default
+    , editor
+    , encode
+    , mapColor
+    , mapPadding
+    , mapStroke
+    , mapThickness
+    , mapWidthPercentage
+    , strokeToString
+    )
 
 import Colorpicker
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Icon
+import Json.Decode as Decode exposing (Decoder)
+import Json.Encode as Encode exposing (Value)
 import Lang
+import Padding exposing (Padding)
 import UI
 
 
@@ -14,6 +30,7 @@ type alias Divider =
     , stroke : Stroke
     , thickness : Int
     , color : String
+    , padding : Padding
     }
 
 
@@ -72,13 +89,44 @@ mapColor hex divider =
     { divider | color = hex }
 
 
+mapPadding : Padding.Msg -> Divider -> Divider
+mapPadding msg divider =
+    { divider | padding = Padding.map msg divider.padding }
+
+
 default : Divider
 default =
     { widthPercentage = 100
     , stroke = Solid
     , thickness = 1
     , color = "#718096"
+    , padding = Padding.default 5
     }
+
+
+
+-- Json
+
+
+encode : Divider -> Value
+encode divider =
+    Encode.object
+        [ ( "width_percentage", Encode.int divider.widthPercentage )
+        , ( "stroke", strokeToString divider.stroke |> Encode.string )
+        , ( "thickness", Encode.int divider.thickness )
+        , ( "color", Encode.string divider.color )
+        , ( "padding", Padding.encode divider.padding )
+        ]
+
+
+decoder : Decoder Divider
+decoder =
+    Decode.map5 Divider
+        (Decode.field "width_percentage" Decode.int)
+        (Decode.field "stroke" (Decode.map strokeFromString Decode.string))
+        (Decode.field "thickness" Decode.int)
+        (Decode.field "color" Decode.string)
+        (Decode.field "padding" Padding.decoder)
 
 
 
@@ -93,6 +141,7 @@ type alias ViewConfig msg =
     , setStroke : Stroke -> msg
     , setThickness : Int -> msg
     , setColor : String -> msg
+    , setPadding : Padding.Msg -> msg
     }
 
 
@@ -133,6 +182,10 @@ editor view =
         , UI.editorSectionInline Lang.color
             [ Colorpicker.view view.divider.color view.setColor
             ]
+        , Padding.editor
+            { padding = view.divider.padding
+            , onInput = view.setPadding
+            }
         ]
 
 

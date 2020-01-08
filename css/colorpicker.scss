@@ -1,0 +1,25 @@
+.ws-colorpicker {
+  .ws-colorpicker-row {
+    display: flex;
+    margin-top: 1px;
+  }
+
+  .ws-colorpicker-color {
+    width: 12px;
+    height: 12px;
+    margin-right: 1px;
+    box-sizing: border-box;
+
+    &.selected {
+      transform: scale(1.5);
+      border: 1px solid $white;
+    }
+  }
+}
+
+.ws-colorpicker-trigger {
+  cursor: pointer;
+  width: 24px;
+  height: 24px;
+  border-radius: 2px;
+}

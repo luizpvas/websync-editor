@@ -8,6 +8,10 @@ class WebsyncQuill extends HTMLElement {
         "https://cdn.quilljs.com/1.3.6/quill.js"
       ],
       () => {
+        var Size = Quill.import("attributors/class/size");
+        Size.whitelist = ["small", "title"];
+        Quill.register(Size, true);
+
         // For some reason the bubble toolbar (that appears when the user selects the text)
         // doesn't work if the element quill attachs to is a custom element. So we need to
         // create a div in order for the toolbar to work correctly
@@ -18,9 +22,14 @@ class WebsyncQuill extends HTMLElement {
           modules: {
             toolbar: [
               ["bold", "italic", "underline"],
-              [{ size: ["small", false, "large", "huge"] }],
-              [{ list: "ordered" }, { list: "bullet" }, "link"],
-              [{ color: [] }]
+              [
+                { align: "" },
+                { align: "center" },
+                { align: "right" },
+                { align: "justify" }
+              ],
+              [{ size: ["small", false, "title"] }],
+              [{ list: "ordered" }, { list: "bullet" }, "link"]
             ]
           }
         });

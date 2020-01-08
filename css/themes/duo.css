@@ -1,0 +1,132 @@
+.theme-duo {
+  font-size: 15px;
+  background: #fff;
+  font-family: sans-serif;
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+.theme-duo p {
+  margin: 0;
+  line-height: 1.5rem;
+}
+
+.theme-duo h1 {
+  margin: 0;
+}
+
+.theme-duo .ws-row {
+  position: relative;
+  padding: 0 10%;
+  box-sizing: border-box;
+}
+
+.theme-duo .ws-row.ws-row-primary {
+  background: white;
+  fill: white;
+  color: black;
+}
+
+.theme-duo .ws-row.ws-row-primary-inverted {
+  background: #1cb0f6;
+  fill: #1cb0f6;
+  color: white;
+}
+
+.theme-duo .ws-row.ws-row-primary-inverted .ql-size-title {
+  color: white;
+}
+
+.theme-duo .ws-row.ws-row-secondary-inverted {
+  background: #707070;
+  fill: #707070;
+  color: white;
+}
+
+.theme-duo .ws-row.ws-row-secondary-inverted .ql-size-title {
+  color: white;
+}
+
+.theme-duo .ws-row-fade {
+  position: absolute;
+  z-index: 8;
+  height: 14px;
+  width: 100%;
+  bottom: -14px;
+  left: 0;
+}
+
+.theme-duo .ws-button-container {
+  display: block;
+  width: 100%;
+  text-align: center;
+}
+
+.theme-duo .ws-button-container .ws-button {
+  display: inline-block;
+  background: #1cb0f6;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 14px;
+  font-weight: 700;
+  text-align: center;
+  font-size: 18px;
+  text-transform: uppercase;
+}
+
+.theme-duo .ws-button-container .ws-button .ql-editor {
+  font-size: 18px !important;
+}
+
+.theme-duo .ws-image-container-left {
+  text-align: left;
+}
+
+.theme-duo .ws-image-container-center {
+  text-align: center;
+}
+
+.theme-duo .ws-image-container-right {
+  text-align: right;
+}
+
+.theme-duo .ql-editor {
+  padding: 0px;
+  font-size: 15px;
+}
+
+.theme-duo .ws-row {
+  background: #fff;
+}
+
+.theme-duo .ws-row-blocks {
+  display: flex;
+  align-items: flex-start;
+}
+
+.theme-duo .ql-align-left {
+  text-align: left;
+}
+
+.theme-duo .ql-align-center {
+  text-align: center;
+}
+
+.theme-duo .ql-align-right {
+  text-align: right;
+}
+
+.theme-duo .ql-align-justify {
+  text-align: justify;
+}
+
+.theme-duo .ql-size-small {
+  font-size: 13px;
+}
+
+.theme-duo .ql-size-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #4c4c4c;
+  line-height: 38px;
+}

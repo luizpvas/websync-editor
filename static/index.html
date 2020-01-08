@@ -11,8 +11,96 @@
     </style>
 
     <script>
+      let illustrations = [
+        { url: "/undraw/undraw_a_day_off_w9ex.svg", name: "A day off" },
+        { url: "/undraw/undraw_annotation_7das.svg", name: "Annotation" },
+        {
+          url: "/undraw/undraw_content_structure_79gj.svg",
+          name: "Content structure"
+        },
+        { url: "/undraw/undraw_date_night_bda8.svg", name: "Date night" },
+        {
+          url: "/undraw/undraw_decorative_friends_q2np.svg",
+          name: "Decorative friends"
+        },
+        {
+          url: "/undraw/undraw_hacker_mindset_gjwq.svg",
+          name: "Hacker mindset"
+        },
+        { url: "/undraw/undraw_hot_beverage_2vw3.svg", name: "Hot beverage" },
+        {
+          url: "/undraw/undraw_instant_information_6755.svg",
+          name: "Instant information"
+        },
+        {
+          url: "/undraw/undraw_interior_design_9i70.svg",
+          name: "Interior design"
+        },
+        { url: "/undraw/undraw_listening_1u79.svg", name: "Listening" },
+        {
+          url: "/undraw/undraw_mobile_interface_wakp.svg",
+          name: "Mobile interface"
+        },
+        { url: "/undraw/undraw_my_location_f9pr.svg", name: "My location" },
+        { url: "/undraw/undraw_observations_mejb.svg", name: "Observations" },
+        { url: "/undraw/undraw_online_ad_mg4t.svg", name: "Online ad" },
+        {
+          url: "/undraw/undraw_online_article_kr64.svg",
+          name: "Online article"
+        },
+        { url: "/undraw/undraw_our_solution_htvp.svg", name: "Our solution" },
+        { url: "/undraw/undraw_partying_p92d.svg", name: "Partying" },
+        { url: "/undraw/undraw_personal_file_222m.svg", name: "Personal file" },
+        { url: "/undraw/undraw_santa_visit_loux.svg", name: "Santa visit" },
+        {
+          url: "/undraw/undraw_selecting_team_s098.svg",
+          name: "Selecting team"
+        },
+        { url: "/undraw/undraw_share_link_qtxe.svg", name: "Share link" },
+        {
+          url: "/undraw/undraw_shared_workspace_hwky.svg",
+          name: "Shared workspace"
+        },
+        {
+          url: "/undraw/undraw_sharing_articles_t5aa.svg",
+          name: "Sharing articles"
+        },
+        { url: "/undraw/undraw_sign_in_e6hj.svg", name: "Sign in" },
+        {
+          url: "/undraw/undraw_static_website_0107.svg",
+          name: "Static website"
+        },
+        {
+          url: "/undraw/undraw_success_factors_fay0.svg",
+          name: "Success factors"
+        },
+        { url: "/undraw/undraw_throw_away_ldjd.svg", name: "Throw away" },
+        { url: "/undraw/undraw_towing_6yy4.svg", name: "Towing" },
+        { url: "/undraw/undraw_travel_mode_7sf4.svg", name: "Travel mode" },
+        { url: "/undraw/undraw_unDraw_1000_gty8.svg", name: "UnDraw 1000" },
+        {
+          url: "/undraw/undraw_winter_activities_vv0v.svg",
+          name: "Winter activities"
+        },
+        {
+          url: "/undraw/undraw_xmas_snowman_k7yf.svg",
+          name: "Christmass snowman"
+        }
+      ];
+
       window.addEventListener("load", () => {
         let editor = document.querySelector("#editor");
+
+        document
+          .querySelector("#get-contents")
+          .addEventListener("click", () => {
+            editor.getContents(serialized => {
+              console.log(serialized.json);
+              document.querySelector("#output").value = serialized.html;
+            });
+          });
+
+        editor.setIllustrations(illustrations);
 
         editor.uploadHandler((file, progress, done) => {
           let xhr = new XMLHttpRequest();
@@ -47,7 +135,10 @@
     </script>
   </head>
   <body>
-    <div style="width: 950px; margin: 0 auto;">
+    <div style="margin: 0 auto;">
+      <button id="get-contents">Get HMTL</button>
+      <textarea id="output"></textarea>
+
       <websync-editor id="editor"></websync-editor>
     </div>
   </body>

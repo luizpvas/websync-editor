@@ -3,7 +3,7 @@ module DndTest exposing (suite)
 import Dnd
 import DomElement exposing (DomElement)
 import Editor
-import Expect
+import Expect exposing (..)
 import RowId exposing (RowId)
 import Test exposing (..)
 
@@ -24,7 +24,7 @@ suite =
             \_ ->
                 Expect.equal
                     (Dnd.calculateRowTarget { x = 1, y = 1 } dummyRowId dummyElement)
-                    Dnd.NoTargetRow
+                    (Dnd.NoTargetButHoveringRow dummyRowId dummyElement)
         , test "detects before rect if closer to top" <|
             \_ ->
                 Expect.equal
@@ -35,6 +35,11 @@ suite =
                 Expect.equal
                     (Dnd.calculateRowTarget { x = 2, y = 4 } dummyRowId dummyElement)
                     (Dnd.AfterRow dummyRowId dummyElement)
+        , test "calculates delta movement to percentage" <|
+            \_ ->
+                Expect.within (Absolute 0.0001)
+                    (Dnd.calculateDeltaPercentageX { x = -10, y = 0 } 200)
+                    (-10 / (200 * 0.8))
         ]
 
 

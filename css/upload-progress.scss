@@ -1,0 +1,10 @@
+.ws-upload-progress {
+  background: graytext;
+  width: 100%;
+  height: 10px;
+
+  .ws-upload-progress-uploaded {
+    height: 10px;
+    background: blue;
+  }
+}

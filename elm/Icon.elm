@@ -1,4 +1,21 @@
-module Icon exposing (alignCenter, alignLeft, alignRight, button, close, divider, image, move, text, trash, youtube)
+module Icon exposing
+    ( alignCenter
+    , alignLeft
+    , alignRight
+    , button
+    , close
+    , divider
+    , fadeNone
+    , fadeTiltLeft
+    , fadeTiltRight
+    , fadeWave
+    , illustration
+    , image
+    , move
+    , text
+    , trash
+    , youtube
+    )
 
 import Svg exposing (..)
 import Svg.Attributes exposing (..)
@@ -57,3 +74,28 @@ text =
 youtube : Svg msg
 youtube =
     svg [ width "24", height "24", fill "none" ] [ Svg.path [ fill "currentColor", fillRule "evenodd", d "M4 5a4 4 0 0 0-4 4v6a4 4 0 0 0 4 4s2 .5 8 .5 8-.5 8-.5a4 4 0 0 0 4-4V9a4 4 0 0 0-4-4s-4-.5-8-.5S4 5 4 5zm6 10.5l6-3.5-6-3.5v7z", clipRule "evenodd" ] [] ]
+
+
+illustration : Svg msg
+illustration =
+    svg [ viewBox "0 0 478 478", height "18" ] [ Svg.path [ fill "currentColor", d "M476 231c-2-3-4-6-7-7l-67-36 67-36a17 17 0 000-30L247 2c-5-3-11-3-16 0L9 122a17 17 0 000 30l67 36-67 36a17 17 0 000 30l67 36-67 36a17 17 0 000 30l222 120c5 3 11 3 16 0l222-120a17 17 0 000-30l-67-36 67-36c8-5 11-15 7-23zM53 137L239 36l186 101-186 100L53 137zm372 204L239 441 53 341l59-31 119 63c5 3 11 3 16 0l119-63 59 31zm-186-2L53 239l59-32 119 64c5 3 11 3 16 0l119-64 59 32-186 100z" ] [] ]
+
+
+fadeWave : Svg msg
+fadeWave =
+    svg [ fill "none", viewBox "0 0 30 30", width "40" ] [ Svg.path [ fill "#818181", d "M29 11H1v5.4c1 .8 3.3 3.1 8.9 2.5 4.2-.5 5.1-1 10.2-2.5 4-1.1 8 1.3 8.9 2.5V11z" ] [] ]
+
+
+fadeNone : Svg msg
+fadeNone =
+    svg [ fill "none", viewBox "0 0 30 30", width "40" ] [ Svg.path [ fill "#818181", d "M1 11h28v8H1z" ] [] ]
+
+
+fadeTiltRight : Svg msg
+fadeTiltRight =
+    svg [ fill "none", viewBox "0 0 30 30", width "40" ] [ Svg.path [ fill "#818181", d "M29 11H1l28 7.9V11z" ] [] ]
+
+
+fadeTiltLeft : Svg msg
+fadeTiltLeft =
+    svg [ fill "none", viewBox "0 0 30 30", width "40" ] [ Svg.path [ fill "#818181", d "M1 11h28L1 18.9V11z" ] [] ]

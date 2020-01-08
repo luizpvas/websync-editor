@@ -1,37 +1,42 @@
 module Editor exposing
-    ( Block
-    , Content(..)
-    , Email
-    , Row(..)
+    ( Email
     , addContentAfterAnotherContent
     , addContentBeforeAnotherContent
     , addFirstContentToBlock
     , addRowAfterAnotherRow
     , addRowBeforeAnotherRow
-    , contentFromString
-    , contentId
+    , decoder
     , emptyEmail
+    , encode
     , findContent
     , findRow
     , initWithRows
+    , mapButton
     , mapContents
     , mapDivider
     , mapImage
+    , mapRow
     , mapText
     , removeContent
     , removeRow
-    , rowFromString
-    , rowId
+    , resizeBlocks
     )
 
 -- Email
 
+import Block exposing (Block)
 import BlockId exposing (BlockId)
+import Content
+import Content.Button as Button
 import Content.Divider as Divider
 import Content.Image as Image
 import Content.Text as Text
 import ContentId exposing (ContentId)
+import Json.Decode as Decode exposing (Decoder)
+import Json.Encode as Encode exposing (Value)
 import List.Extra
+import Padding
+import Row exposing (Row)
 import RowId exposing (RowId)
 
 
@@ -46,7 +51,15 @@ screen.
 -}
 emptyEmail : Email
 emptyEmail =
-    { rows = [ Row100 (RowId.fromInt 1) { id = BlockId.fromInt 1, contents = [] } ]
+    { rows =
+        [ { id = RowId.fromInt 1
+          , style = Row.Primary
+          , fade = Row.HardCap
+          , padding = Padding.default 0
+          , alignment = Row.Start
+          , layout = Row.Row100 { id = BlockId.fromInt 1, width = 1.0, contents = [] }
+          }
+        ]
     }
 
 
@@ -59,17 +72,17 @@ initWithRows rows =
 
 findRow : RowId -> Email -> Maybe Row
 findRow id email =
-    email.rows |> List.filter (\row -> rowId row == id) |> List.head
+    email.rows |> List.filter (\row -> row.id == id) |> List.head
 
 
-findContent : ContentId -> Email -> Maybe Content
+findContent : ContentId -> Email -> Maybe Content.Content
 findContent id email =
     email
         |> flattenBlocks
         |> List.filterMap
             (\block ->
                 block.contents
-                    |> List.filter (\content -> contentId content == id)
+                    |> List.filter (\content -> Content.contentId content == id)
                     |> List.head
             )
         |> List.head
@@ -80,27 +93,27 @@ flattenBlocks email =
     email.rows
         |> List.concatMap
             (\row ->
-                case row of
-                    Row100 _ block ->
+                case row.layout of
+                    Row.Row100 block ->
                         [ block ]
 
-                    Row50x50 _ left right ->
+                    Row.Row50x50 left right ->
                         [ left, right ]
 
-                    Row33x33x33 _ left middle right ->
+                    Row.Row33x33x33 left middle right ->
                         [ left, middle, right ]
             )
 
 
 addRowAfterAnotherRow : Row -> RowId -> Email -> Email
 addRowAfterAnotherRow toBeAdded afterThis email =
-    if Maybe.map rowId (List.Extra.last email.rows) == Just afterThis then
+    if Maybe.map .id (List.Extra.last email.rows) == Just afterThis then
         { email | rows = email.rows ++ [ toBeAdded ] }
 
     else
-        List.Extra.findIndex (\row -> rowId row == afterThis) email.rows
+        List.Extra.findIndex (\row -> row.id == afterThis) email.rows
             |> Maybe.andThen (\index -> List.Extra.getAt (index + 1) email.rows)
-            |> Maybe.map (\beforeRow -> addRowBeforeAnotherRow toBeAdded (rowId beforeRow) email)
+            |> Maybe.map (\beforeRow -> addRowBeforeAnotherRow toBeAdded beforeRow.id email)
             |> Maybe.withDefault email
 
 
@@ -108,14 +121,14 @@ addRowBeforeAnotherRow : Row -> RowId -> Email -> Email
 addRowBeforeAnotherRow toBeAdded beforeThis email =
     let
         newRows =
-            List.Extra.takeWhile (\row -> rowId row /= beforeThis) email.rows
+            List.Extra.takeWhile (\row -> row.id /= beforeThis) email.rows
                 ++ [ toBeAdded ]
-                ++ List.Extra.dropWhile (\row -> rowId row /= beforeThis) email.rows
+                ++ List.Extra.dropWhile (\row -> row.id /= beforeThis) email.rows
     in
     { email | rows = newRows }
 
 
-addFirstContentToBlock : Content -> BlockId -> Email -> Email
+addFirstContentToBlock : Content.Content -> BlockId -> Email -> Email
 addFirstContentToBlock content blockId =
     mapBlocks
         (\block ->
@@ -127,17 +140,17 @@ addFirstContentToBlock content blockId =
         )
 
 
-addContentBeforeAnotherContent : Content -> ContentId -> Email -> Email
+addContentBeforeAnotherContent : Content.Content -> ContentId -> Email -> Email
 addContentBeforeAnotherContent toBeAdded beforeThis =
     mapBlocks
         (\block ->
-            case List.Extra.find (\c -> contentId c == beforeThis) block.contents of
+            case List.Extra.find (\c -> Content.contentId c == beforeThis) block.contents of
                 Just _ ->
                     { block
                         | contents =
-                            List.Extra.takeWhile (\c -> contentId c /= beforeThis) block.contents
+                            List.Extra.takeWhile (\c -> Content.contentId c /= beforeThis) block.contents
                                 ++ [ toBeAdded ]
-                                ++ List.Extra.dropWhile (\c -> contentId c /= beforeThis) block.contents
+                                ++ List.Extra.dropWhile (\c -> Content.contentId c /= beforeThis) block.contents
                     }
 
                 Nothing ->
@@ -145,17 +158,17 @@ addContentBeforeAnotherContent toBeAdded beforeThis =
         )
 
 
-addContentAfterAnotherContent : Content -> ContentId -> Email -> Email
+addContentAfterAnotherContent : Content.Content -> ContentId -> Email -> Email
 addContentAfterAnotherContent toBeAdded afterThis =
     mapBlocks
         (\block ->
-            case List.Extra.find (\c -> contentId c == afterThis) block.contents of
+            case List.Extra.find (\c -> Content.contentId c == afterThis) block.contents of
                 Just _ ->
                     { block
                         | contents =
-                            List.Extra.dropWhileRight (\c -> contentId c /= afterThis) block.contents
+                            List.Extra.dropWhileRight (\c -> Content.contentId c /= afterThis) block.contents
                                 ++ [ toBeAdded ]
-                                ++ List.Extra.takeWhileRight (\c -> contentId c /= afterThis) block.contents
+                                ++ List.Extra.takeWhileRight (\c -> Content.contentId c /= afterThis) block.contents
                     }
 
                 Nothing ->
@@ -165,14 +178,14 @@ addContentAfterAnotherContent toBeAdded afterThis =
 
 removeRow : RowId -> Email -> Email
 removeRow toBeRemovedId email =
-    { email | rows = email.rows |> List.filter (\row -> rowId row /= toBeRemovedId) }
+    { email | rows = email.rows |> List.filter (\row -> row.id /= toBeRemovedId) }
 
 
 removeContent : ContentId -> Email -> Email
 removeContent toBeRemovedId =
     mapBlocks
         (\block ->
-            { block | contents = block.contents |> List.filter (\c -> contentId c /= toBeRemovedId) }
+            { block | contents = block.contents |> List.filter (\c -> Content.contentId c /= toBeRemovedId) }
         )
 
 
@@ -185,19 +198,46 @@ mapBlocks : (Block -> Block) -> Email -> Email
 mapBlocks fn =
     mapRows
         (\row ->
-            case row of
-                Row100 id block ->
-                    Row100 id (fn block)
+            case row.layout of
+                Row.Row100 block ->
+                    { row | layout = Row.Row100 (fn block) }
 
-                Row50x50 id left right ->
-                    Row50x50 id (fn left) (fn right)
+                Row.Row50x50 left right ->
+                    { row | layout = Row.Row50x50 (fn left) (fn right) }
 
-                Row33x33x33 id left middle right ->
-                    Row33x33x33 id (fn left) (fn middle) (fn right)
+                Row.Row33x33x33 left middle right ->
+                    { row | layout = Row.Row33x33x33 (fn left) (fn middle) (fn right) }
         )
 
 
-mapContents : (Content -> Content) -> Email -> Email
+mapRow : RowId -> (Row -> Row) -> Email -> Email
+mapRow rowId fn =
+    mapRows
+        (\row ->
+            if row.id == rowId then
+                fn row
+
+            else
+                row
+        )
+
+
+resizeBlocks : BlockId -> BlockId -> Float -> Email -> Email
+resizeBlocks leftId rightId delta =
+    mapBlocks
+        (\block ->
+            if block.id == leftId then
+                { block | width = block.width + delta }
+
+            else if block.id == rightId then
+                { block | width = block.width - delta }
+
+            else
+                block
+        )
+
+
+mapContents : (Content.Content -> Content.Content) -> Email -> Email
 mapContents fn =
     mapBlocks (\block -> { block | contents = block.contents |> List.map fn })
 
@@ -207,9 +247,9 @@ mapImage targetId fn =
     mapContents
         (\content ->
             case content of
-                Image imageId image ->
+                Content.Image imageId image ->
                     if imageId == targetId then
-                        Image imageId (fn image)
+                        Content.Image imageId (fn image)
 
                     else
                         content
@@ -224,9 +264,9 @@ mapDivider targetId fn =
     mapContents
         (\content ->
             case content of
-                Divider dividerId divider ->
+                Content.Divider dividerId divider ->
                     if dividerId == targetId then
-                        Divider dividerId (fn divider)
+                        Content.Divider dividerId (fn divider)
 
                     else
                         content
@@ -241,9 +281,26 @@ mapText targetId fn =
     mapContents
         (\content ->
             case content of
-                Text textId text ->
+                Content.Text textId text ->
                     if textId == targetId then
-                        Text textId (fn text)
+                        Content.Text textId (fn text)
+
+                    else
+                        content
+
+                _ ->
+                    content
+        )
+
+
+mapButton : ContentId -> (Button.Button -> Button.Button) -> Email -> Email
+mapButton targetId fn =
+    mapContents
+        (\content ->
+            case content of
+                Content.Button buttonId button ->
+                    if buttonId == targetId then
+                        Content.Button buttonId (fn button)
 
                     else
                         content
@@ -254,122 +311,17 @@ mapText targetId fn =
 
 
 
--- Block
+-- Json
 
 
-type Row
-    = Row100 RowId Block
-    | Row50x50 RowId Block Block
-    | Row33x33x33 RowId Block Block Block
+encode : Email -> Value
+encode email =
+    Encode.object
+        [ ( "rows", Encode.list Row.encode email.rows )
+        ]
 
 
-type alias Block =
-    { id : BlockId
-    , contents : ContentList
-    }
-
-
-rowId : Row -> RowId
-rowId row =
-    case row of
-        Row100 id _ ->
-            id
-
-        Row50x50 id _ _ ->
-            id
-
-        Row33x33x33 id _ _ _ ->
-            id
-
-
-rowFromString : String -> Int -> Maybe ( Int, Row )
-rowFromString rowName latestId =
-    let
-        newBlock =
-            \id row ->
-                row { id = BlockId.fromInt id, contents = [] }
-    in
-    case rowName of
-        "Row100" ->
-            Just
-                ( latestId + 2
-                , Row100 (RowId.fromInt latestId)
-                    |> newBlock (latestId + 1)
-                )
-
-        "Row50x50" ->
-            Just
-                ( latestId + 3
-                , Row50x50 (RowId.fromInt latestId)
-                    |> newBlock (latestId + 1)
-                    |> newBlock (latestId + 2)
-                )
-
-        "Row33x33x33" ->
-            Just
-                ( latestId + 4
-                , Row33x33x33 (RowId.fromInt latestId)
-                    |> newBlock (latestId + 1)
-                    |> newBlock (latestId + 2)
-                    |> newBlock (latestId + 3)
-                )
-
-        _ ->
-            Nothing
-
-
-
--- Content
-
-
-type alias ContentList =
-    List Content
-
-
-type Content
-    = Button ContentId
-    | Divider ContentId Divider.Divider
-    | Image ContentId Image.Image
-    | Text ContentId Text.Text
-    | YoutubeVideo ContentId
-
-
-contentId : Content -> ContentId
-contentId content =
-    case content of
-        Button id ->
-            id
-
-        Divider id _ ->
-            id
-
-        Image id _ ->
-            id
-
-        Text id _ ->
-            id
-
-        YoutubeVideo id ->
-            id
-
-
-contentFromString : String -> Int -> Maybe ( Int, Content )
-contentFromString name id =
-    case name of
-        "Button" ->
-            Just ( id + 1, Button (ContentId.fromInt id) )
-
-        "Divider" ->
-            Just ( id + 1, Divider (ContentId.fromInt id) Divider.default )
-
-        "Image" ->
-            Just ( id + 1, Image (ContentId.fromInt id) Image.default )
-
-        "Text" ->
-            Just ( id + 1, Text (ContentId.fromInt id) Text.default )
-
-        "YoutubeVideo" ->
-            Just ( id + 1, YoutubeVideo (ContentId.fromInt id) )
-
-        _ ->
-            Nothing
+decoder : Decoder Email
+decoder =
+    Decode.map Email
+        (Decode.field "rows" (Decode.list Row.decoder))

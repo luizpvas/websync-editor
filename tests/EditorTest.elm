@@ -1,9 +1,13 @@
 module EditorTest exposing (suite)
 
 import BlockId
+import Content exposing (Content)
+import Content.Button as Button
 import ContentId
 import Editor
 import Expect
+import Padding
+import Row exposing (Row)
 import RowId
 import Test exposing (..)
 
@@ -15,22 +19,22 @@ suite =
             [ test "adds a row before another row" <|
                 \_ ->
                     Editor.initWithRows [ dummyRow1, dummyRow2 ]
-                        |> Editor.addRowBeforeAnotherRow dummyRow3 (Editor.rowId dummyRow2)
+                        |> Editor.addRowBeforeAnotherRow dummyRow3 dummyRow2.id
                         |> Expect.equal { rows = [ dummyRow1, dummyRow3, dummyRow2 ] }
             , test "adds a row after another row" <|
                 \_ ->
                     Editor.initWithRows [ dummyRow1, dummyRow2 ]
-                        |> Editor.addRowAfterAnotherRow dummyRow3 (Editor.rowId dummyRow1)
+                        |> Editor.addRowAfterAnotherRow dummyRow3 dummyRow1.id
                         |> Expect.equal { rows = [ dummyRow1, dummyRow3, dummyRow2 ] }
             , test "adds a row before another row as the first" <|
                 \_ ->
                     Editor.initWithRows [ dummyRow1, dummyRow2 ]
-                        |> Editor.addRowBeforeAnotherRow dummyRow3 (Editor.rowId dummyRow1)
+                        |> Editor.addRowBeforeAnotherRow dummyRow3 dummyRow1.id
                         |> Expect.equal { rows = [ dummyRow3, dummyRow1, dummyRow2 ] }
             , test "adds a row after another row as the last" <|
                 \_ ->
                     Editor.initWithRows [ dummyRow1, dummyRow2 ]
-                        |> Editor.addRowAfterAnotherRow dummyRow3 (Editor.rowId dummyRow2)
+                        |> Editor.addRowAfterAnotherRow dummyRow3 dummyRow2.id
                         |> Expect.equal { rows = [ dummyRow1, dummyRow2, dummyRow3 ] }
             ]
         , describe "Adding and removing content"
@@ -58,31 +62,33 @@ suite =
         ]
 
 
-emailWithContents : List Editor.Content -> Editor.Email
+emailWithContents : List Content -> Editor.Email
 emailWithContents contents =
     Editor.initWithRows
-        [ Editor.Row100 (RowId.fromInt 1)
-            { id = BlockId.fromInt 1
-            , contents = contents
-            }
+        [ { id = RowId.fromInt 1
+          , style = Row.Primary
+          , fade = Row.Wave
+          , padding = Padding.default 0
+          , layout = Row.Row100 { id = BlockId.fromInt 1, width = 1.0, contents = [] }
+          }
         ]
 
 
-dummyContent : Int -> Editor.Content
+dummyContent : Int -> Content
 dummyContent id =
-    Editor.Button (ContentId.fromInt id)
+    Content.Button (ContentId.fromInt id) Button.default
 
 
-dummyRow1 : Editor.Row
+dummyRow1 : Row
 dummyRow1 =
-    Editor.Row100 (RowId.fromInt 1) { id = BlockId.fromInt 1, contents = [] }
+    Row.dummy (RowId.fromInt 1) (BlockId.fromInt 1) []
 
 
-dummyRow2 : Editor.Row
+dummyRow2 : Row
 dummyRow2 =
-    Editor.Row100 (RowId.fromInt 2) { id = BlockId.fromInt 2, contents = [] }
+    Row.dummy (RowId.fromInt 2) (BlockId.fromInt 2) []
 
 
-dummyRow3 : Editor.Row
+dummyRow3 : Row
 dummyRow3 =
-    Editor.Row100 (RowId.fromInt 3) { id = BlockId.fromInt 3, contents = [] }
+    Row.dummy (RowId.fromInt 3) (BlockId.fromInt 3) []

@@ -1,4 +1,7 @@
-module ContentId exposing (ContentId(..), domId, fromInt, toString)
+module ContentId exposing (ContentId(..), decoder, domId, encode, fromInt, toString)
+
+import Json.Decode as Decode exposing (Decoder)
+import Json.Encode as Encode exposing (Value)
 
 
 type ContentId
@@ -17,4 +20,14 @@ toString (ContentId id) =
 
 domId : ContentId -> String
 domId (ContentId id) =
-    "row-" ++ String.fromInt id
+    "content-" ++ String.fromInt id
+
+
+encode : ContentId -> Value
+encode (ContentId id) =
+    Encode.int id
+
+
+decoder : Decoder ContentId
+decoder =
+    Decode.map ContentId Decode.int
