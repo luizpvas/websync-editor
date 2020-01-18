@@ -4,6 +4,7 @@
 @import "upload-progress";
 @import "toolbar";
 @import "modal";
+@import "trix";
 
 @import "themes/duo.css";
 
@@ -27,6 +28,7 @@
 .ws-right-panel {
   width: 395px;
   flex-shrink: 0;
+  border-left: 1px solid $gray400;
 }
 
 .ws-input {
@@ -198,6 +200,7 @@
   background: $blue200;
   height: 50px;
   padding: 10px;
+  margin: 5px;
   box-sizing: border-box;
   border: 1px dashed $blue500;
   display: flex;

@@ -5,6 +5,7 @@ module Icon exposing
     , button
     , close
     , divider
+    , download
     , fadeNone
     , fadeTiltLeft
     , fadeTiltRight
@@ -12,8 +13,11 @@ module Icon exposing
     , illustration
     , image
     , move
+    , redo
+    , save
     , text
     , trash
+    , undo
     , youtube
     )
 
@@ -99,3 +103,23 @@ fadeTiltRight =
 fadeTiltLeft : Svg msg
 fadeTiltLeft =
     svg [ fill "none", viewBox "0 0 30 30", width "40" ] [ Svg.path [ fill "#818181", d "M1 11h28L1 18.9V11z" ] [] ]
+
+
+download : Svg msg
+download =
+    svg [ viewBox "0 0 20 20" ] [ Svg.path [ d "M13 8V2H7v6H2l8 8 8-8h-5zM0 18h20v2H0v-2z" ] [] ]
+
+
+save : Svg msg
+save =
+    svg [ viewBox "0 0 20 20" ] [ Svg.path [ d "M0 2C0 .9.9 0 2 0h14l4 4v14a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V2zm5 0v6h10V2H5zm6 1h3v4h-3V3z" ] [] ]
+
+
+undo : Svg msg
+undo =
+    svg [ viewBox "0 0 24 24", width "24", height "24" ] [ Svg.path [ d "M12.5 8c-2.6 0-5 1-6.9 2.6L2 7v9h9l-3.6-3.6A8 8 0 0 1 20 16l2.4-.8a10.5 10.5 0 0 0-10-7.2z" ] [] ]
+
+
+redo : Svg msg
+redo =
+    svg [ viewBox "0 0 24 24", width "24", height "24" ] [ Svg.path [ d "M18.4 10.6a10.5 10.5 0 0 0-16.9 4.6L4 16a8 8 0 0 1 12.7-3.6L13 16h9V7l-3.6 3.6z" ] [] ]

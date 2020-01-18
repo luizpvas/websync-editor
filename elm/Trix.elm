@@ -1,4 +1,4 @@
-module Quill exposing (Model, decoder, default, editor, encode, html)
+module Trix exposing (Model, decoder, default, editor, encode, html)
 
 import Html exposing (..)
 import Html.Attributes exposing (..)
@@ -10,19 +10,13 @@ import Json.Encode as Encode exposing (Value)
 type alias Model =
     { html : String
     , text : String
-    , delta : Value
     }
 
 
 default : String -> Model
 default str =
-    { html = "<p>" ++ str ++ "<p>"
+    { html = "<div>" ++ str ++ "<div>"
     , text = str
-    , delta =
-        ("{\"ops\": [{\"insert\":\"" ++ str ++ "\"}]}")
-            |> Decode.decodeString Decode.value
-            |> Result.toMaybe
-            |> Maybe.withDefault Encode.null
     }
 
 
@@ -40,16 +34,14 @@ encode quill =
     Encode.object
         [ ( "html", Encode.string quill.html )
         , ( "text", Encode.string quill.text )
-        , ( "delta", quill.delta )
         ]
 
 
 decoder : Decoder Model
 decoder =
-    Decode.map3 Model
+    Decode.map2 Model
         (Decode.field "html" Decode.string)
         (Decode.field "text" Decode.string)
-        (Decode.field "delta" Decode.value)
 
 
 
@@ -61,10 +53,9 @@ editor toMsg model =
     -- We need to wrap the quill element in a div because the toolbar seems to be
     -- added as a cousin of the current node, which messes up Elm's Html.Keyed stuff.
     div []
-        [ node "websync-quill"
+        [ node "websync-trix"
             [ attribute "data-html" model.html
-            , attribute "data-delta" (Encode.encode 0 model.delta)
-            , on "quill-change" (eventDecoder toMsg)
+            , on "trix-change" (eventDecoder toMsg)
             ]
             []
         ]

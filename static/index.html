@@ -2,11 +2,29 @@
 <html>
   <head>
     <script src="/main.js"></script>
+
     <style>
       hmtl,
       body {
         background: #dfdfdf;
         font-family: sans-serif;
+        margin: 0;
+        padding: 0;
+      }
+
+      .navbar-container {
+        width: 100%;
+        background: white;
+        border-bottom: 1px solid #505050;
+      }
+
+      .navbar {
+        padding: 20px 0;
+        max-width: 1110px;
+        margin: 0 auto;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
       }
     </style>
 
@@ -91,16 +109,19 @@
       window.addEventListener("load", () => {
         let editor = document.querySelector("#editor");
 
-        document
-          .querySelector("#get-contents")
-          .addEventListener("click", () => {
-            editor.getContents(serialized => {
-              console.log(serialized.json);
-              document.querySelector("#output").value = serialized.html;
-            });
-          });
+        try {
+          let json = JSON.parse(localStorage.getItem("websync-serialized"));
+          editor.load(json);
+        } catch (err) {}
 
         editor.setIllustrations(illustrations);
+
+        editor.saveHandler(serialized => {
+          localStorage.setItem(
+            "websync-serialized",
+            JSON.stringify(serialized.json)
+          );
+        });
 
         editor.uploadHandler((file, progress, done) => {
           let xhr = new XMLHttpRequest();
@@ -135,10 +156,17 @@
     </script>
   </head>
   <body>
-    <div style="margin: 0 auto;">
-      <button id="get-contents">Get HMTL</button>
-      <textarea id="output"></textarea>
+    <div class="navbar-container">
+      <div class="navbar">
+        Websync Editor
 
+        <a href="https://github.com">
+          &starf; Star on Github
+        </a>
+      </div>
+    </div>
+
+    <div style="margin: 0 auto;">
       <websync-editor id="editor"></websync-editor>
     </div>
   </body>

@@ -22,6 +22,25 @@ $blue900: #2a4365;
 
 $baseZIndex: 10;
 
+$editorMaxWidth: 1110px;
+
+.ws-container {
+  max-width: $editorMaxWidth;
+  margin: 0 auto;
+}
+
+.ws-flex {
+  display: flex;
+}
+
+.ws-align-center {
+  align-items: center;
+}
+
+.ws-justify-between {
+  justify-content: space-between;
+}
+
 .ws-p-10 {
   padding: 10px;
 }

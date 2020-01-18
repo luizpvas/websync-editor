@@ -26,6 +26,7 @@ module Editor exposing
 
 import Block exposing (Block)
 import BlockId exposing (BlockId)
+import Colorpicker
 import Content
 import Content.Button as Button
 import Content.Divider as Divider
@@ -53,8 +54,7 @@ emptyEmail : Email
 emptyEmail =
     { rows =
         [ { id = RowId.fromInt 1
-          , style = Row.Primary
-          , fade = Row.HardCap
+          , background = Colorpicker.white
           , padding = Padding.default 0
           , alignment = Row.Start
           , layout = Row.Row100 { id = BlockId.fromInt 1, width = 1.0, contents = [] }
@@ -122,8 +122,8 @@ addRowBeforeAnotherRow toBeAdded beforeThis email =
     let
         newRows =
             List.Extra.takeWhile (\row -> row.id /= beforeThis) email.rows
-                ++ [ toBeAdded ]
-                ++ List.Extra.dropWhile (\row -> row.id /= beforeThis) email.rows
+                ++ toBeAdded
+                :: List.Extra.dropWhile (\row -> row.id /= beforeThis) email.rows
     in
     { email | rows = newRows }
 
@@ -149,8 +149,8 @@ addContentBeforeAnotherContent toBeAdded beforeThis =
                     { block
                         | contents =
                             List.Extra.takeWhile (\c -> Content.contentId c /= beforeThis) block.contents
-                                ++ [ toBeAdded ]
-                                ++ List.Extra.dropWhile (\c -> Content.contentId c /= beforeThis) block.contents
+                                ++ toBeAdded
+                                :: List.Extra.dropWhile (\c -> Content.contentId c /= beforeThis) block.contents
                     }
 
                 Nothing ->
@@ -167,8 +167,8 @@ addContentAfterAnotherContent toBeAdded afterThis =
                     { block
                         | contents =
                             List.Extra.dropWhileRight (\c -> Content.contentId c /= afterThis) block.contents
-                                ++ [ toBeAdded ]
-                                ++ List.Extra.takeWhileRight (\c -> Content.contentId c /= afterThis) block.contents
+                                ++ toBeAdded
+                                :: List.Extra.takeWhileRight (\c -> Content.contentId c /= afterThis) block.contents
                     }
 
                 Nothing ->

@@ -163,7 +163,7 @@ color =
 
 
 addFirstComponent =
-    "Adicione um componente aqui!"
+    "Drag 'n drop a component here"
 
 
 search =

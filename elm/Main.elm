@@ -14,9 +14,9 @@ import ContentId exposing (ContentId)
 import Dnd
 import DomElement
 import Dropdown
+import EditHistory exposing (EditHistory)
 import Editor exposing (Email)
 import Error
-import File exposing (File)
 import Hovering
 import Html exposing (..)
 import Html.Attributes exposing (..)
@@ -25,18 +25,16 @@ import Html.Keyed
 import Icon
 import Illustration exposing (Illustration)
 import Interop
-import Json.Decode as Decode exposing (Decoder)
-import Json.Encode as Encode exposing (Value)
+import Json.Decode as Decode
+import Json.Encode exposing (Value)
 import Lang
 import Padding
-import Quill
 import RawHtml
-import Renderer
 import Row exposing (Row)
-import Row.Fade
 import RowId exposing (RowId)
 import Selection
 import Task
+import Trix
 import UI
 
 
@@ -52,15 +50,21 @@ type alias Flags =
     }
 
 
+type alias Editor =
+    { email : Email
+    , selection : Selection.SelectionState
+    }
+
+
 type alias Model =
     { latestId : Int
-    , email : Email
+    , editor : Editor
+    , editHistory : EditHistory Editor
     , illustrations : List Illustration
     , mouseOffsetX : Int
     , mouseOffsetY : Int
     , drag : Dnd.DragState
     , hover : Hovering.HoverState
-    , selection : Selection.SelectionState
     , error : Error.Error
     }
 
@@ -70,18 +74,22 @@ init flags =
     let
         email =
             Decode.decodeValue Editor.decoder flags.serialized
-                |> Debug.log "boa"
                 |> Result.toMaybe
                 |> Maybe.withDefault Editor.emptyEmail
+
+        editor =
+            { email = email
+            , selection = Selection.Nothing
+            }
     in
     ( { latestId = flags.latestId
-      , email = email
+      , editor = editor
+      , editHistory = EditHistory.init editor
       , illustrations = []
       , mouseOffsetX = flags.mouseOffsetX
       , mouseOffsetY = flags.mouseOffsetY
       , drag = Dnd.NotDragging
       , hover = Hovering.init
-      , selection = Selection.Nothing
       , error = Error.AllGood
       }
     , Cmd.none
@@ -95,9 +103,13 @@ init flags =
 type Msg
     = Ignored
       -- Model
+    | Load Value
     | GotIllustrations Value
     | EncodeAndSendContents
+    | Save
     | OpenPreview String
+    | Undo
+    | Redo
       -- Drag and drop & Hovering
     | DragContentStarted String Int Int
     | DragExistingContentStarted ContentId Int Int
@@ -121,8 +133,7 @@ type Msg
     | ClearSelection
       -- Editing row
     | RemoveRow RowId
-    | SetRowStyling RowId Row.RowStyle
-    | SetRowFade RowId Row.Fade
+    | SetRowBackground RowId String
     | SetRowPadding RowId Padding.Msg
     | SetRowAlignment RowId Row.Alignment
       -- Content: all
@@ -148,10 +159,10 @@ type Msg
     | SetDividerColor ContentId String
     | SetDividerPadding ContentId Padding.Msg
       -- Content: Text
-    | SetTextQuill ContentId Quill.Model
+    | SetTextTrix ContentId Trix.Model
     | SetTextPadding ContentId Padding.Msg
       -- Content: Button
-    | SetButtonQuill ContentId Quill.Model
+    | SetButtonTrix ContentId Trix.Model
     | SetButtonUrl ContentId String
     | SetButtonPadding ContentId Padding.Msg
 
@@ -162,6 +173,17 @@ update msg model =
         Ignored ->
             ( model, Cmd.none )
 
+        Load value ->
+            case Decode.decodeValue Editor.decoder value of
+                Ok email ->
+                    ( { model | editHistory = EditHistory.init { email = email, selection = Selection.Nothing } }
+                        |> mapEditor (\_ -> { email = email, selection = Selection.Nothing })
+                    , Cmd.none
+                    )
+
+                Err err ->
+                    flashErrorString "Failed to decode editor on load." model
+
         GotIllustrations value ->
             case Decode.decodeValue (Decode.list Illustration.decoder) value of
                 Ok illustrations ->
@@ -171,12 +193,38 @@ update msg model =
                     flashErrorString "Failed to decode illustrations list." model
 
         EncodeAndSendContents ->
-            ( { model | selection = Selection.Nothing }
-            , Interop.sendContents (Editor.encode model.email)
+            ( mapEditor (\editor -> { editor | selection = Selection.Nothing }) model
+            , Interop.sendContents (Editor.encode model.editor.email)
+            )
+
+        Save ->
+            ( mapEditor (\editor -> { editor | selection = Selection.Nothing }) model
+                |> (\m -> { m | editHistory = EditHistory.markSavedPoint model.editor model.editHistory })
+            , Interop.save (Editor.encode model.editor.email)
             )
 
         OpenPreview width ->
             ( model, Interop.openPreview width )
+
+        Undo ->
+            case EditHistory.undo model.editHistory of
+                ( Just editor, editHistory ) ->
+                    ( { model | editHistory = editHistory } |> mapEditor (\_ -> editor)
+                    , Cmd.none
+                    )
+
+                ( Nothing, _ ) ->
+                    ( model, Cmd.none )
+
+        Redo ->
+            case EditHistory.redo model.editHistory of
+                ( Just editor, editHistory ) ->
+                    ( { model | editHistory = editHistory } |> mapEditor (\_ -> editor)
+                    , Cmd.none
+                    )
+
+                ( Nothing, _ ) ->
+                    ( model, Cmd.none )
 
         -- ========================
         -- Drag and drop & Hovering
@@ -190,7 +238,7 @@ update msg model =
                     flashErrorString "Could not parse content string" model
 
         DragExistingContentStarted contentId x y ->
-            case Editor.findContent contentId model.email of
+            case Editor.findContent contentId model.editor.email of
                 Just content ->
                     ( { model | drag = Dnd.startDraggingContent content x y, hover = Hovering.clear }, Cmd.none )
 
@@ -206,7 +254,7 @@ update msg model =
                     flashErrorString "Could not parse row string" model
 
         DragExistingRowStarted rowId x y ->
-            case Editor.findRow rowId model.email of
+            case Editor.findRow rowId model.editor.email of
                 Just row ->
                     ( { model | drag = Dnd.startDraggingRow row x y, hover = Hovering.clear }, Cmd.none )
 
@@ -298,6 +346,10 @@ update msg model =
         GotElementMouseEnteredContent contentId result ->
             case result of
                 Ok element ->
+                    let
+                        _ =
+                            Debug.log "from the side" element
+                    in
                     ( { model | drag = Dnd.mapContentTarget contentId (DomElement.fromBrowser element) model.drag }, Cmd.none )
 
                 Err err ->
@@ -307,18 +359,14 @@ update msg model =
             ( { model | drag = Dnd.clearTargetContent model.drag, hover = Hovering.pop model.hover }, Cmd.none )
 
         DragMoved x y deltaX deltaY ->
-            ( { model
-                | drag = Dnd.mapCoordinate { x = x, y = y } model.drag
-                , email = Dnd.applyChanges { x = deltaX, y = deltaY } model.drag model.email
-              }
+            ( { model | drag = Dnd.mapCoordinate { x = x, y = y } model.drag }
+                |> mapEditor (\editor -> { editor | email = Dnd.applyChanges { x = deltaX, y = deltaY } model.drag editor.email })
             , Cmd.none
             )
 
         DragStopped ->
-            ( { model
-                | drag = Dnd.NotDragging
-                , email = Dnd.drop model.email model.drag
-              }
+            ( { model | drag = Dnd.NotDragging }
+                |> track (\editor -> { editor | email = Dnd.drop editor.email model.drag })
             , Cmd.none
             )
 
@@ -326,25 +374,22 @@ update msg model =
         -- Selection
         -- ========================
         SelectRow rowId ->
-            ( { model | selection = Selection.selectRow rowId }, Cmd.none )
+            ( track (\editor -> { editor | selection = Selection.selectRow rowId }) model, Cmd.none )
 
         SelectContent contentId ->
-            ( { model | selection = Selection.selectContent contentId }, Cmd.none )
+            ( track (\editor -> { editor | selection = Selection.selectContent contentId }) model, Cmd.none )
 
         ClearSelection ->
-            ( { model | selection = Selection.Nothing }, Cmd.none )
+            ( track (\editor -> { editor | selection = Selection.Nothing }) model, Cmd.none )
 
         -- ========================
         -- Editing row
         -- ========================
         RemoveRow rowId ->
-            ( { model | email = Editor.removeRow rowId model.email }, Cmd.none )
+            ( track (\editor -> { editor | email = Editor.removeRow rowId editor.email }) model, Cmd.none )
 
-        SetRowStyling rowId style ->
-            mapRow rowId (Row.mapStyle style) model
-
-        SetRowFade rowId fade ->
-            mapRow rowId (Row.mapFade fade) model
+        SetRowBackground rowId background ->
+            mapRow rowId (Row.mapBackground background) model
 
         SetRowPadding rowId padding ->
             mapRow rowId (Row.mapPadding padding) model
@@ -356,7 +401,9 @@ update msg model =
         -- Content: All
         -- ========================
         ContentRemoved contentId ->
-            ( { model | email = Editor.removeContent contentId model.email, selection = Selection.Nothing }, Cmd.none )
+            ( track (\editor -> { editor | email = Editor.removeContent contentId editor.email, selection = Selection.Nothing }) model
+            , Cmd.none
+            )
 
         -- ========================
         -- Content: Image
@@ -421,8 +468,8 @@ update msg model =
         -- ========================
         -- Content: Text
         -- ========================
-        SetTextQuill id data ->
-            mapText id (Text.mapQuill data) model
+        SetTextTrix id trix ->
+            mapText id (Text.mapTrix trix) model
 
         SetTextPadding id padding ->
             mapText id (Text.mapPadding padding) model
@@ -430,8 +477,8 @@ update msg model =
         -- ========================
         -- Content: Button
         -- ========================
-        SetButtonQuill id text ->
-            mapButton id (Button.mapQuill text) model
+        SetButtonTrix id trix ->
+            mapButton id (Button.mapTrix trix) model
 
         SetButtonUrl id url ->
             mapButton id (Button.mapUrl url) model
@@ -450,29 +497,43 @@ flashErrorString description model =
     ( { model | error = Error.StringError description }, Cmd.none )
 
 
+track : (Editor -> Editor) -> Model -> Model
+track fn model =
+    let
+        newEditor =
+            fn model.editor
+    in
+    { model | editor = newEditor, editHistory = EditHistory.push newEditor model.editHistory }
+
+
+mapEditor : (Editor -> Editor) -> Model -> Model
+mapEditor fn model =
+    { model | editor = fn model.editor }
+
+
 mapRow : RowId -> (Row -> Row) -> Model -> ( Model, Cmd Msg )
 mapRow rowId fn model =
-    ( { model | email = Editor.mapRow rowId fn model.email }, Cmd.none )
+    ( mapEditor (\editor -> { editor | email = Editor.mapRow rowId fn editor.email }) model, Cmd.none )
 
 
 mapImage : ContentId -> (Image.Image -> Image.Image) -> Model -> ( Model, Cmd Msg )
 mapImage id fn model =
-    ( { model | email = Editor.mapImage id fn model.email }, Cmd.none )
+    ( mapEditor (\editor -> { editor | email = Editor.mapImage id fn editor.email }) model, Cmd.none )
 
 
 mapDivider : ContentId -> (Divider.Divider -> Divider.Divider) -> Model -> ( Model, Cmd Msg )
 mapDivider id fn model =
-    ( { model | email = Editor.mapDivider id fn model.email }, Cmd.none )
+    ( mapEditor (\editor -> { editor | email = Editor.mapDivider id fn editor.email }) model, Cmd.none )
 
 
 mapText : ContentId -> (Text.Text -> Text.Text) -> Model -> ( Model, Cmd Msg )
 mapText id fn model =
-    ( { model | email = Editor.mapText id fn model.email }, Cmd.none )
+    ( mapEditor (\editor -> { editor | email = Editor.mapText id fn editor.email }) model, Cmd.none )
 
 
 mapButton : ContentId -> (Button.Button -> Button.Button) -> Model -> ( Model, Cmd Msg )
 mapButton id fn model =
-    ( { model | email = Editor.mapButton id fn model.email }, Cmd.none )
+    ( mapEditor (\editor -> { editor | email = Editor.mapButton id fn editor.email }) model, Cmd.none )
 
 
 
@@ -503,18 +564,56 @@ view model =
 viewToolbar : Model -> Html Msg
 viewToolbar model =
     div [ class "ws-toolbar" ]
-        [ div [ class "ws-toolbar-left" ]
-            []
-        , div [ class "ws-toolbar-right" ]
-            [ Dropdown.view
-                (div [] [ text "Preview" ])
-                (div []
-                    [ div [ onClick (OpenPreview "500px") ] [ text "Mobile" ]
-                    , div [ onClick (OpenPreview "90%") ] [ text "Desktop" ]
-                    ]
-                )
+        [ div [ class "ws-container ws-flex ws-align-center ws-justify-between" ]
+            [ div [ class "ws-toolbar-left" ]
+                [ Dropdown.view
+                    (div [ class "ws-toolbar-button" ] [ text "Preview..." ])
+                    (div []
+                        [ div [ onClick (OpenPreview "500px") ] [ text "Mobile" ]
+                        , div [ onClick (OpenPreview "90%") ] [ text "Desktop" ]
+                        ]
+                    )
+                , viewUndoButton model
+                , viewRedoButton model
+                ]
+            , div [ class "ws-toolbar-right" ]
+                [ div [ class "ws-toolbar-button", onClick Save ] [ Icon.download, text "Download" ]
+                , viewSaveButton model
+                ]
             ]
         ]
+
+
+viewUndoButton : Model -> Html Msg
+viewUndoButton model =
+    if EditHistory.canUndo model.editHistory then
+        div [ class "ws-toolbar-button", title "Undo", onClick Undo ] [ Icon.undo ]
+
+    else
+        div [ class "ws-toolbar-button ws-toolbar-button--disabled" ] [ Icon.undo ]
+
+
+viewRedoButton : Model -> Html Msg
+viewRedoButton model =
+    if EditHistory.canRedo model.editHistory then
+        div [ class "ws-toolbar-button", title "Redo", onClick Redo ] [ Icon.redo ]
+
+    else
+        div [ class "ws-toolbar-button ws-toolbar-button--disabled" ] [ Icon.redo ]
+
+
+viewSaveButton : Model -> Html Msg
+viewSaveButton model =
+    if EditHistory.hasUnsavedChanges model.editHistory then
+        div
+            [ class "ws-toolbar-button ws-toolbar-button--highlight"
+            , onClick Save
+            , title "You've made changes - save it!"
+            ]
+            [ Icon.save, text "Save" ]
+
+    else
+        div [ class "ws-toolbar-button ws-toolbar-button--disabled", onClick Save ] [ Icon.save, text "Save" ]
 
 
 viewEditor : Model -> Html Msg
@@ -523,7 +622,7 @@ viewEditor model =
     -- Maybe we should add a conditional here to not register onClick when the user
     -- is dragging something?
     div [ class "ws-editor ws-email theme-duo", onClick ClearSelection ]
-        (List.map (viewEditorRow model) model.email.rows)
+        (List.map (viewEditorRow model) model.editor.email.rows)
 
 
 viewEditorRow : Model -> Row -> Html Msg
@@ -539,13 +638,14 @@ viewEditorRow model row =
     case row.layout of
         Row.Row100 block ->
             div
-                ([ class ("ws-row " ++ Row.rowStyleClass row)
+                ([ class "ws-row"
                  , id (RowId.domId row.id)
                  , onMouseEnter (MouseEnteredRow row.id)
                  , onMouseLeave MouseLeftRow
                  ]
                     ++ Padding.attributes row.padding
                     ++ rowClick
+                    ++ [ Row.backgroundAttribute row ]
                 )
                 [ viewEditorRowControls model row
                 , div [ class "ws-row-blocks" ]
@@ -553,18 +653,18 @@ viewEditorRow model row =
                         [ viewEditorBlock model block
                         ]
                     ]
-                , viewRowFade row
                 ]
 
         Row.Row50x50 left right ->
             div
-                ([ class ("ws-row " ++ Row.rowStyleClass row)
+                ([ class "ws-row"
                  , id (RowId.domId row.id)
                  , onMouseEnter (MouseEnteredRow row.id)
                  , onMouseLeave MouseLeftRow
                  ]
                     ++ Padding.attributes row.padding
                     ++ rowClick
+                    ++ [ Row.backgroundAttribute row ]
                 )
                 [ viewEditorRowControls model row
                 , div [ class "ws-row-blocks", Row.alignmentAttribute row ]
@@ -576,18 +676,18 @@ viewEditorRow model row =
                         [ viewEditorBlock model right
                         ]
                     ]
-                , viewRowFade row
                 ]
 
         Row.Row33x33x33 left center right ->
             div
-                ([ class ("ws-row " ++ Row.rowStyleClass row)
+                ([ class "ws-row"
                  , id (RowId.domId row.id)
                  , onMouseEnter (MouseEnteredRow row.id)
                  , onMouseLeave MouseLeftRow
                  ]
                     ++ Padding.attributes row.padding
                     ++ rowClick
+                    ++ [ Row.backgroundAttribute row ]
                 )
                 [ viewEditorRowControls model row
                 , div [ class "ws-row-blocks", Row.alignmentAttribute row ]
@@ -603,24 +703,7 @@ viewEditorRow model row =
                         [ viewEditorBlock model right
                         ]
                     ]
-                , viewRowFade row
                 ]
-
-
-viewRowFade : Row -> Html msg
-viewRowFade row =
-    case row.fade of
-        Row.HardCap ->
-            text ""
-
-        Row.Wave ->
-            RawHtml.view Row.Fade.waveSvg
-
-        Row.TiltLeft ->
-            RawHtml.view Row.Fade.tiltLeftSvg
-
-        Row.TiltRight ->
-            RawHtml.view Row.Fade.tiltRightSvg
 
 
 viewEditorRowControls : Model -> Row -> Html Msg
@@ -628,7 +711,7 @@ viewEditorRowControls model row =
     if Dnd.isDragging model.drag then
         text ""
 
-    else if Selection.isRowSelected row.id model.selection then
+    else if Selection.isRowSelected row.id model.editor.selection then
         div [ class "ws-row-hover ws-selected" ]
             [ div
                 [ class "ws-move-icon"
@@ -696,7 +779,7 @@ viewEditorBlockContent : Model -> Content -> ( String, Html Msg )
 viewEditorBlockContent model content =
     let
         contentView =
-            if Selection.isContentSelected (Content.contentId content) model.selection then
+            if Selection.isContentSelected (Content.contentId content) model.editor.selection then
                 ( "selected-" ++ ContentId.domId (Content.contentId content), viewSelectedContent content )
 
             else
@@ -729,7 +812,7 @@ viewContent content =
                     ++ Padding.attributes button.padding
                 )
                 [ div [ class "ws-button" ]
-                    [ RawHtml.view (Quill.html button.quill)
+                    [ RawHtml.view (Trix.html button.trix)
                     ]
                 ]
 
@@ -755,50 +838,11 @@ viewContent content =
                 ]
 
         Content.Image id image ->
-            let
-                containerClass =
-                    case image.alignment of
-                        Image.Left ->
-                            "ws-image-container ws-image-container-left"
-
-                        Image.Center ->
-                            "ws-image-container ws-image-container-center"
-
-                        Image.Right ->
-                            "ws-image-container ws-image-container-right"
-
-                width =
-                    case image.width of
-                        Image.Auto ->
-                            style "width" "auto"
-
-                        Image.Full ->
-                            style "width" "100%"
-
-                        Image.InPixels pixels ->
-                            style "width" (String.fromInt pixels ++ "px")
-            in
-            if Image.isEmpty image then
-                div [ class "ws-image-empty" ]
-                    [ Icon.image
-                    ]
-
-            else
-                div [ class containerClass ]
-                    [ img
-                        ([ src image.url
-                         , width
-                         , alt image.altDescription
-                         , attribute "data-url" (Maybe.withDefault "" image.actionUrl)
-                         ]
-                            ++ Padding.attributes image.padding
-                        )
-                        []
-                    ]
+            Image.render image
 
         Content.Text id editingText ->
             div (Padding.attributes editingText.padding)
-                [ RawHtml.view (Quill.html editingText.quill)
+                [ RawHtml.view (Trix.html editingText.trix)
                 ]
 
         Content.YoutubeVideo id ->
@@ -811,19 +855,19 @@ viewSelectedContent content =
         Content.Button id button ->
             div (class "ws-button-container" :: Padding.attributes button.padding)
                 [ div [ class "ws-button" ]
-                    [ Quill.editor (SetButtonQuill id) button.quill
+                    [ Trix.editor (SetButtonTrix id) button.trix
                     ]
                 ]
 
         Content.Divider id divider ->
             viewContent content
 
-        Content.Image _ _ ->
-            viewContent content
+        Content.Image _ image ->
+            Image.render image
 
         Content.Text id text ->
             div (Padding.attributes text.padding)
-                [ Quill.editor (SetTextQuill id) text.quill
+                [ Trix.editor (SetTextTrix id) text.trix
                 ]
 
         Content.YoutubeVideo id ->
@@ -835,7 +879,7 @@ viewEditorBlockContentControls model content =
     if Dnd.isDragging model.drag then
         text ""
 
-    else if Selection.isContentSelected (Content.contentId content) model.selection then
+    else if Selection.isContentSelected (Content.contentId content) model.editor.selection then
         div [ class "ws-content-hover ws-selected" ]
             [ div
                 [ class "ws-move-icon"
@@ -859,19 +903,18 @@ viewEditorBlockContentControls model content =
 
 viewRightPanel : Model -> Html Msg
 viewRightPanel model =
-    case model.selection of
+    case model.editor.selection of
         Selection.Nothing ->
             viewDraggableItems model
 
         Selection.RowSelected rowId ->
-            case Editor.findRow rowId model.email of
+            case Editor.findRow rowId model.editor.email of
                 Just row ->
                     Row.editor
                         { row = row
                         , remove = RemoveRow rowId
                         , close = ClearSelection
-                        , setStyle = SetRowStyling rowId
-                        , setFade = SetRowFade rowId
+                        , setBackground = SetRowBackground rowId
                         , setPadding = SetRowPadding rowId
                         , setAlignment = SetRowAlignment rowId
                         }
@@ -880,7 +923,7 @@ viewRightPanel model =
                     text ""
 
         Selection.ContentSelected contentId ->
-            case Editor.findContent contentId model.email of
+            case Editor.findContent contentId model.editor.email of
                 Just content ->
                     case content of
                         Content.Button id button ->
@@ -1070,6 +1113,9 @@ viewDraggingTarget dragState offsetX offsetY =
                 Dnd.NoTargetContent ->
                     text ""
 
+                Dnd.NoTargetButHoveringContent _ _ ->
+                    text ""
+
         Dnd.ResizingBlocks _ _ _ _ ->
             text ""
 
@@ -1104,12 +1150,14 @@ subscriptions model =
                 Sub.none
     in
     Sub.batch
-        [ mouseMoveForDragging
+        [ Interop.load Load
+        , mouseMoveForDragging
         , mouseUpForDragging
         , Interop.uploadProgress SetImageUploadProgress
         , Interop.uploadDone SetImageUploadDone
         , Interop.illustrations GotIllustrations
         , Interop.getContents (\_ -> EncodeAndSendContents)
+        , Interop.ctrlZ (\_ -> Undo)
         ]
 
 

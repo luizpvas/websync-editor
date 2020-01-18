@@ -1,24 +1,22 @@
 module Row exposing
     ( Alignment(..)
-    , Fade(..)
     , Row
     , RowLayout(..)
-    , RowStyle(..)
     , alignmentAttribute
+    , backgroundAttribute
     , decoder
     , dummy
     , editor
     , encode
     , mapAlignment
-    , mapFade
+    , mapBackground
     , mapPadding
-    , mapStyle
     , rowFromString
-    , rowStyleClass
     )
 
 import Block exposing (Block)
 import BlockId exposing (BlockId)
+import Colorpicker
 import Content exposing (ContentList)
 import Html exposing (..)
 import Html.Attributes exposing (..)
@@ -35,8 +33,7 @@ import UI
 type alias Row =
     { id : RowId
     , layout : RowLayout
-    , style : RowStyle
-    , fade : Fade
+    , background : String
     , alignment : Alignment
     , padding : Padding
     }
@@ -46,90 +43,6 @@ type RowLayout
     = Row100 Block
     | Row50x50 Block Block
     | Row33x33x33 Block Block Block
-
-
-type RowStyle
-    = Primary
-    | Secondary
-    | PrimaryInverted
-    | SecondaryInverted
-
-
-styleToString : RowStyle -> String
-styleToString style =
-    case style of
-        Primary ->
-            "Primary"
-
-        Secondary ->
-            "Secondary"
-
-        PrimaryInverted ->
-            "PrimaryInverted"
-
-        SecondaryInverted ->
-            "SecondaryInverted"
-
-
-styleFromString : String -> RowStyle
-styleFromString str =
-    case str of
-        "Primary" ->
-            Primary
-
-        "Secondary" ->
-            Secondary
-
-        "PrimaryInverted" ->
-            PrimaryInverted
-
-        "SecondaryInverted" ->
-            SecondaryInverted
-
-        _ ->
-            Primary
-
-
-type Fade
-    = HardCap
-    | Wave
-    | TiltLeft
-    | TiltRight
-
-
-fadeToString : Fade -> String
-fadeToString fade =
-    case fade of
-        HardCap ->
-            "HardCap"
-
-        Wave ->
-            "Wave"
-
-        TiltLeft ->
-            "TiltLeft"
-
-        TiltRight ->
-            "TiltRight"
-
-
-fadeFromString : String -> Fade
-fadeFromString str =
-    case str of
-        "HardCap" ->
-            HardCap
-
-        "Wave" ->
-            Wave
-
-        "TiltLeft" ->
-            TiltLeft
-
-        "TiltRight" ->
-            TiltRight
-
-        _ ->
-            HardCap
 
 
 type Alignment
@@ -167,22 +80,6 @@ alignmentFromString str =
             Start
 
 
-rowStyleClass : Row -> String
-rowStyleClass row =
-    case row.style of
-        Primary ->
-            "ws-row-primary"
-
-        Secondary ->
-            "ws-row-secondary"
-
-        PrimaryInverted ->
-            "ws-row-primary-inverted"
-
-        SecondaryInverted ->
-            "ws-row-secondary-inverted"
-
-
 alignmentAttribute : Row -> Attribute msg
 alignmentAttribute row =
     case row.alignment of
@@ -194,6 +91,11 @@ alignmentAttribute row =
 
         End ->
             style "align-items" "flex-end"
+
+
+backgroundAttribute : Row -> Attribute msg
+backgroundAttribute row =
+    style "background" row.background
 
 
 rowFromString : String -> Int -> Maybe ( Int, Row )
@@ -208,8 +110,7 @@ rowFromString rowName latestId =
             Just
                 ( latestId + 2
                 , { id = RowId.fromInt latestId
-                  , style = Primary
-                  , fade = HardCap
+                  , background = Colorpicker.white
                   , padding = Padding.default 0
                   , alignment = Start
                   , layout = Row100 |> newBlock (latestId + 1) 1.0
@@ -220,8 +121,7 @@ rowFromString rowName latestId =
             Just
                 ( latestId + 3
                 , { id = RowId.fromInt latestId
-                  , style = Primary
-                  , fade = HardCap
+                  , background = Colorpicker.white
                   , padding = Padding.default 0
                   , alignment = Start
                   , layout =
@@ -235,8 +135,7 @@ rowFromString rowName latestId =
             Just
                 ( latestId + 4
                 , { id = RowId.fromInt latestId
-                  , style = Primary
-                  , fade = HardCap
+                  , background = Colorpicker.white
                   , padding = Padding.default 0
                   , alignment = Start
                   , layout =
@@ -255,8 +154,7 @@ dummy : RowId -> BlockId -> ContentList -> Row
 dummy id blockId contents =
     { id = id
     , layout = Row100 { id = blockId, contents = contents, width = 1.0 }
-    , style = Primary
-    , fade = HardCap
+    , background = Colorpicker.white
     , alignment = Start
     , padding = Padding.default 0
     }
@@ -266,14 +164,9 @@ dummy id blockId contents =
 -- Mapping
 
 
-mapStyle : RowStyle -> Row -> Row
-mapStyle style row =
-    { row | style = style }
-
-
-mapFade : Fade -> Row -> Row
-mapFade fade row =
-    { row | fade = fade }
+mapBackground : String -> Row -> Row
+mapBackground background row =
+    { row | background = background }
 
 
 mapPadding : Padding.Msg -> Row -> Row
@@ -294,8 +187,7 @@ type alias ViewConfig msg =
     { row : Row
     , close : msg
     , remove : msg
-    , setStyle : RowStyle -> msg
-    , setFade : Fade -> msg
+    , setBackground : String -> msg
     , setPadding : Padding.Msg -> msg
     , setAlignment : Alignment -> msg
     }
@@ -308,13 +200,8 @@ editor view =
             [ button [ onClick view.remove ] [ Icon.trash ]
             , button [ onClick view.close ] [ Icon.close ]
             ]
-        , UI.editorSectionInline Lang.styling
-            [ viewStyling view
-                [ ( Primary, Lang.primary )
-                , ( Secondary, Lang.secondary )
-                , ( PrimaryInverted, Lang.primaryInverted )
-                , ( SecondaryInverted, Lang.secondaryInverted )
-                ]
+        , UI.editorSectionInline Lang.color
+            [ Colorpicker.view view.row.background view.setBackground
             ]
         , UI.editorSectionInline Lang.alignment
             [ viewAlignmentOptions view
@@ -323,36 +210,8 @@ editor view =
                 , ( End, Icon.alignRight )
                 ]
             ]
-        , UI.editorSection Lang.rowFade
-            [ viewFades view
-                [ ( HardCap, Icon.fadeNone )
-                , ( Wave, Icon.fadeWave )
-                , ( TiltLeft, Icon.fadeTiltLeft )
-                , ( TiltRight, Icon.fadeTiltRight )
-                ]
-            ]
         , Padding.editorTopAndBottom { padding = view.row.padding, onInput = view.setPadding }
         ]
-
-
-viewStyling view options =
-    select [ onInput (styleFromString >> view.setStyle) ]
-        (List.map
-            (\( val, txt ) ->
-                option [ value (styleToString val), selected (view.row.style == val) ] [ text txt ]
-            )
-            options
-        )
-
-
-viewFades view options =
-    div []
-        (List.map
-            (\( val, txt ) ->
-                div [ class "ws-row-fade-option", onClick (view.setFade val) ] [ txt ]
-            )
-            options
-        )
 
 
 viewAlignmentOptions : ViewConfig msg -> List ( Alignment, Html msg ) -> Html msg
@@ -379,8 +238,7 @@ encode row =
     Encode.object
         [ ( "id", RowId.encode row.id )
         , ( "layout", encodeLayout row.layout )
-        , ( "style", styleToString row.style |> Encode.string )
-        , ( "fade", fadeToString row.fade |> Encode.string )
+        , ( "background", Colorpicker.encode row.background )
         , ( "alignment", alignmentToString row.alignment |> Encode.string )
         , ( "padding", Padding.encode row.padding )
         ]
@@ -413,11 +271,10 @@ encodeLayout layout =
 
 decoder : Decoder Row
 decoder =
-    Decode.map6 Row
+    Decode.map5 Row
         (Decode.field "id" RowId.decoder)
         (Decode.field "layout" layoutDecoder)
-        (Decode.field "style" (Decode.map styleFromString Decode.string))
-        (Decode.field "fade" (Decode.map fadeFromString Decode.string))
+        (Decode.field "background" Colorpicker.decoder)
         (Decode.field "alignment" (Decode.map alignmentFromString Decode.string))
         (Decode.field "padding" Padding.decoder)
 

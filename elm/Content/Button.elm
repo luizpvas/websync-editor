@@ -5,7 +5,7 @@ module Content.Button exposing
     , editor
     , encode
     , mapPadding
-    , mapQuill
+    , mapTrix
     , mapUrl
     )
 
@@ -17,12 +17,12 @@ import Json.Decode as Decode exposing (Decoder)
 import Json.Encode as Encode exposing (Value)
 import Lang
 import Padding exposing (Padding)
-import Quill
+import Trix
 import UI
 
 
 type alias Button =
-    { quill : Quill.Model
+    { trix : Trix.Model
     , url : String
     , padding : Padding
     }
@@ -30,15 +30,15 @@ type alias Button =
 
 default : Button
 default =
-    { quill = Quill.default Lang.clickMe
+    { trix = Trix.default Lang.clickMe
     , url = ""
     , padding = Padding.default 5
     }
 
 
-mapQuill : Quill.Model -> Button -> Button
-mapQuill quill button =
-    { button | quill = quill }
+mapTrix : Trix.Model -> Button -> Button
+mapTrix trix button =
+    { button | trix = trix }
 
 
 mapUrl : String -> Button -> Button
@@ -58,7 +58,7 @@ mapPadding msg button =
 encode : Button -> Value
 encode button =
     Encode.object
-        [ ( "quill", Quill.encode button.quill )
+        [ ( "trix", Trix.encode button.trix )
         , ( "url", Encode.string button.url )
         , ( "padding", Padding.encode button.padding )
         ]
@@ -67,7 +67,7 @@ encode button =
 decoder : Decoder Button
 decoder =
     Decode.map3 Button
-        (Decode.field "quill" Quill.decoder)
+        (Decode.field "trix" Trix.decoder)
         (Decode.field "url" Decode.string)
         (Decode.field "padding" Padding.decoder)
 

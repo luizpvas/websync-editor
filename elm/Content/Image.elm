@@ -21,6 +21,7 @@ module Content.Image exposing
     , mapUploadProgress
     , mapUrl
     , mapWidth
+    , render
     , widthToString
     )
 
@@ -299,6 +300,50 @@ widthDecoder =
 
 
 -- Views
+
+
+render : Image -> Html msg
+render image =
+    let
+        containerClass =
+            case image.alignment of
+                Left ->
+                    "ws-image-container ws-image-container-left"
+
+                Center ->
+                    "ws-image-container ws-image-container-center"
+
+                Right ->
+                    "ws-image-container ws-image-container-right"
+
+        width =
+            case image.width of
+                Auto ->
+                    style "width" "auto"
+
+                Full ->
+                    style "width" "100%"
+
+                InPixels pixels ->
+                    style "width" (String.fromInt pixels ++ "px")
+    in
+    if isEmpty image then
+        div [ class "ws-image-empty" ]
+            [ Icon.image
+            ]
+
+    else
+        div [ class containerClass ]
+            [ img
+                ([ src image.url
+                 , width
+                 , alt image.altDescription
+                 , attribute "data-url" (Maybe.withDefault "" image.actionUrl)
+                 ]
+                    ++ Padding.attributes image.padding
+                )
+                []
+            ]
 
 
 type alias ViewConfig msg =

@@ -1,9 +1,34 @@
-module Colorpicker exposing (view)
+module Colorpicker exposing (decoder, encode, view, white)
 
 import Dropdown
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
+import Json.Decode as Decode exposing (Decoder)
+import Json.Encode as Encode exposing (Value)
+
+
+white : String
+white =
+    "#FFFFFF"
+
+
+
+-- Json
+
+
+encode : String -> Value
+encode =
+    Encode.string
+
+
+decoder : Decoder String
+decoder =
+    Decode.string
+
+
+
+-- View
 
 
 view : String -> (String -> msg) -> Html msg

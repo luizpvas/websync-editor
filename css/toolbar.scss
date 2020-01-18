@@ -1,13 +1,61 @@
 .ws-toolbar {
   background: $gray600;
-  padding: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  border-bottom: 1px solid $gray800;
+  padding: 6px;
 
   &-left {
+    display: flex;
+    align-items: center;
   }
 
   &-right {
+    display: flex;
+    align-items: center;
+  }
+}
+
+.ws-toolbar-button {
+  cursor: pointer;
+  display: block;
+  color: #fff;
+  font-size: 13px;
+  border: 1px solid $gray700;
+  padding: 3px 6px;
+  border-radius: 2px;
+
+  &:first-of-type {
+    margin-right: 5px;
+  }
+
+  &:not(.ws-toolbar-button--disabled):hover {
+    border-color: $gray800;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  }
+
+  &--highlight {
+    background: $blue600;
+    border-color: $blue800;
+
+    svg {
+      fill: $gray300 !important;
+    }
+  }
+
+  &--disabled {
+    color: $gray500;
+    border-color: $gray600 !important;
+
+    svg {
+      fill: $gray500 !important;
+    }
+  }
+
+  svg {
+    fill: $gray400;
+    width: 13px;
+    margin-right: 3px;
+    vertical-align: middle;
+    position: relative;
+    bottom: 2px;
   }
 }

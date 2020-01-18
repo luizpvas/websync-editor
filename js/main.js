@@ -3,7 +3,9 @@ import "./websync-quill";
 import "./websync-html";
 import "./websync-file-upload";
 import "./websync-dropdown";
+import "./websync-trix";
 import "./websync-illustration";
+import CtrlZ from "./ctrl-z";
 import editorToHtml from "./editor-to-html";
 import modal from "./modal";
 import { Elm } from "../elm/Main.elm";
@@ -31,6 +33,14 @@ class WebsyncEditor extends HTMLElement {
       this.latestSerializedContent = serialized;
     });
 
+    this.app.ports.save.subscribe(serialized => {
+      if (this.saveHandlerCallback) {
+        this.getContents(serialized => {
+          this.saveHandlerCallback(serialized);
+        });
+      }
+    });
+
     this.app.ports.openPreview.subscribe(width => {
       this.getContents(content => {
         let escapedHtml = content.html
@@ -44,10 +54,22 @@ class WebsyncEditor extends HTMLElement {
         });
       });
     });
+
+    new CtrlZ(this).listen(() => {
+      this.app.ports.ctrlZ.send(null);
+    });
+  }
+
+  load(json) {
+    this.app.ports.load.send(json);
   }
 
   uploadHandler(callback) {
     this.uploadHandlerCallback = callback;
+  }
+
+  saveHandler(callback) {
+    this.saveHandlerCallback = callback;
   }
 
   fileSelected(file, contentId) {

@@ -1,9 +1,12 @@
 port module Interop exposing
     ( UploadDone
     , UploadProgress
+    , ctrlZ
     , getContents
     , illustrations
+    , load
     , openPreview
+    , save
     , sendContents
     , uploadDone
     , uploadProgress
@@ -39,4 +42,13 @@ port getContents : (() -> msg) -> Sub msg
 port sendContents : Value -> Cmd msg
 
 
+port save : Value -> Cmd msg
+
+
 port openPreview : String -> Cmd msg
+
+
+port ctrlZ : (() -> msg) -> Sub msg
+
+
+port load : (Value -> msg) -> Sub msg

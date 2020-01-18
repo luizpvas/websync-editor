@@ -1,4 +1,4 @@
-module Content.Text exposing (Text, decoder, default, editor, encode, mapPadding, mapQuill)
+module Content.Text exposing (Text, decoder, default, editor, encode, mapPadding, mapTrix)
 
 import Html exposing (..)
 import Html.Attributes exposing (..)
@@ -8,19 +8,19 @@ import Json.Decode as Decode exposing (Decoder)
 import Json.Encode as Encode exposing (Value)
 import Lang
 import Padding exposing (Padding)
-import Quill
+import Trix
 import UI
 
 
 type alias Text =
-    { quill : Quill.Model
+    { trix : Trix.Model
     , padding : Padding
     }
 
 
 default : Text
 default =
-    { quill = Quill.default "Lorem ipsum..."
+    { trix = Trix.default "Lorem ipsum..."
     , padding = Padding.default 0
     }
 
@@ -32,7 +32,7 @@ default =
 encode : Text -> Value
 encode text =
     Encode.object
-        [ ( "quill", Quill.encode text.quill )
+        [ ( "trix", Trix.encode text.trix )
         , ( "padding", Padding.encode text.padding )
         ]
 
@@ -40,7 +40,7 @@ encode text =
 decoder : Decoder Text
 decoder =
     Decode.map2 Text
-        (Decode.field "quill" Quill.decoder)
+        (Decode.field "trix" Trix.decoder)
         (Decode.field "padding" Padding.decoder)
 
 
@@ -48,9 +48,9 @@ decoder =
 -- Mapping
 
 
-mapQuill : Quill.Model -> Text -> Text
-mapQuill quill text =
-    { text | quill = quill }
+mapTrix : Trix.Model -> Text -> Text
+mapTrix trix text =
+    { text | trix = trix }
 
 
 mapPadding : Padding.Msg -> Text -> Text

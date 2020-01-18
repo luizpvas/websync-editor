@@ -76,6 +76,9 @@ type ContentTarget
     | BeforeContent ContentId DomElement
     | AfterContent ContentId DomElement
     | FirstOfBlock BlockId
+      -- This is a weird state when the rect identified by elm is a little shorter than the current cursor
+      -- position. Still not sure how it happens, but we need to keep it in cache until the math works out.
+    | NoTargetButHoveringContent ContentId DomElement
 
 
 startDraggingContent : Content -> Int -> Int -> DragState
@@ -151,6 +154,9 @@ drop email dragState =
                         |> Editor.addFirstContentToBlock item blockId
 
                 NoTargetContent ->
+                    email
+
+                NoTargetButHoveringContent _ _ ->
                     email
 
         ResizingBlocks _ _ _ _ ->
@@ -229,6 +235,9 @@ mapCoordinate xy state =
 
                 NoTargetContent ->
                     DraggingContent content xy NoTargetContent
+
+                NoTargetButHoveringContent hover element ->
+                    DraggingContent content xy (calculateContentTarget xy hover element)
 
         ResizingBlocks _ _ _ _ ->
             state
@@ -365,7 +374,7 @@ calculateContentTarget dragXY contentId element =
             AfterContent contentId element
 
     else
-        NoTargetContent
+        NoTargetButHoveringContent contentId element
 
 
 calculateDeltaPercentageX : Coordinate -> Int -> Float
