@@ -637,70 +637,73 @@ viewEditorRow model row =
     in
     case row.layout of
         Row.Row100 block ->
-            div
-                ([ class "ws-row"
-                 , id (RowId.domId row.id)
-                 , onMouseEnter (MouseEnteredRow row.id)
-                 , onMouseLeave MouseLeftRow
-                 ]
-                    ++ Padding.attributes row.padding
-                    ++ rowClick
-                    ++ [ Row.backgroundAttribute row ]
-                )
-                [ viewEditorRowControls model row
-                , div [ class "ws-row-blocks" ]
-                    [ div [ class "ws-block", style "width" "100%" ]
-                        [ viewEditorBlock model block
+            table [ style "width" "100%" ]
+                [ tbody []
+                    [ tr
+                        ([ class "ws-row"
+                        , id (RowId.domId row.id)
+                        , onMouseEnter (MouseEnteredRow row.id)
+                        , onMouseLeave MouseLeftRow
+                        ]
+                            ++ Padding.attributes row.padding
+                            ++ rowClick
+                            ++ [ Row.backgroundAttribute row ]
+                        )
+                        [ td [ class "ws-block", style "width" "100%" ]
+                            [ viewEditorBlock model block
+                            ]
                         ]
                     ]
                 ]
 
         Row.Row50x50 left right ->
-            div
-                ([ class "ws-row"
-                 , id (RowId.domId row.id)
-                 , onMouseEnter (MouseEnteredRow row.id)
-                 , onMouseLeave MouseLeftRow
-                 ]
-                    ++ Padding.attributes row.padding
-                    ++ rowClick
-                    ++ [ Row.backgroundAttribute row ]
-                )
-                [ viewEditorRowControls model row
-                , div [ class "ws-row-blocks", Row.alignmentAttribute row ]
-                    [ div [ class "ws-block", style "width" (String.fromFloat (left.width * 100) ++ "%") ]
-                        [ viewEditorBlock model left
-                        , viewEditorBlockResizer row.id left.id right.id
+            table [ style "width" "100%" ]
+                [ tbody []
+                    [ tr
+                        ([ class "ws-row"
+                        , id (RowId.domId row.id)
+                        , onMouseEnter (MouseEnteredRow row.id)
+                        , onMouseLeave MouseLeftRow
                         ]
-                    , div [ class "ws-block", style "width" (String.fromFloat (right.width * 100) ++ "%") ]
-                        [ viewEditorBlock model right
+                            ++ Padding.attributes row.padding
+                            ++ rowClick
+                            ++ [ Row.backgroundAttribute row ]
+                        )
+                        [ td [ class "ws-block", style "width" (String.fromFloat (left.width * 100) ++ "%") ]
+                            [ viewEditorBlock model left
+                            , viewEditorBlockResizer row.id left.id right.id
+                            ]
+                        , td [ class "ws-block", style "width" (String.fromFloat (right.width * 100) ++ "%") ]
+                            [ viewEditorBlock model right
+                            ]
                         ]
                     ]
                 ]
 
         Row.Row33x33x33 left center right ->
-            div
-                ([ class "ws-row"
-                 , id (RowId.domId row.id)
-                 , onMouseEnter (MouseEnteredRow row.id)
-                 , onMouseLeave MouseLeftRow
-                 ]
-                    ++ Padding.attributes row.padding
-                    ++ rowClick
-                    ++ [ Row.backgroundAttribute row ]
-                )
-                [ viewEditorRowControls model row
-                , div [ class "ws-row-blocks", Row.alignmentAttribute row ]
-                    [ div [ class "ws-block", style "width" (String.fromFloat (left.width * 100) ++ "%") ]
-                        [ viewEditorBlock model left
-                        , viewEditorBlockResizer row.id left.id center.id
+            table []
+                [ tbody []
+                    [ tr
+                        ([ class "ws-row"
+                        , id (RowId.domId row.id)
+                        , onMouseEnter (MouseEnteredRow row.id)
+                        , onMouseLeave MouseLeftRow
                         ]
-                    , div [ class "ws-block", style "width" (String.fromFloat (center.width * 100) ++ "%") ]
-                        [ viewEditorBlock model center
-                        , viewEditorBlockResizer row.id center.id right.id
-                        ]
-                    , div [ class "ws-block", style "width" (String.fromFloat (right.width * 100) ++ "%") ]
-                        [ viewEditorBlock model right
+                            ++ Padding.attributes row.padding
+                            ++ rowClick
+                            ++ [ Row.backgroundAttribute row ]
+                        )
+                        [ td [ class "ws-block", style "width" (String.fromFloat (left.width * 100) ++ "%") ]
+                            [ viewEditorBlock model left
+                            , viewEditorBlockResizer row.id left.id center.id
+                            ]
+                        , td [ class "ws-block", style "width" (String.fromFloat (center.width * 100) ++ "%") ]
+                            [ viewEditorBlock model center
+                            , viewEditorBlockResizer row.id center.id right.id
+                            ]
+                        , td [ class "ws-block", style "width" (String.fromFloat (right.width * 100) ++ "%") ]
+                            [ viewEditorBlock model right
+                            ]
                         ]
                     ]
                 ]
