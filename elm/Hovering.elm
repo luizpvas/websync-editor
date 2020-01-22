@@ -1,5 +1,6 @@
-module Hovering exposing (HoverState, HoveringItem(..), clear, init, isHoveringContent, isHoveringRow, pop, pushContent, pushRow)
+module Hovering exposing (HoverState, HoveringItem(..), clear, init, isHoveringContent, latest, pop, pushContent, pushRow)
 
+import Browser.Dom
 import ContentId exposing (ContentId)
 import RowId exposing (RowId)
 
@@ -9,7 +10,7 @@ type alias HoverState =
 
 
 type HoveringItem
-    = HoveringRow RowId
+    = HoveringRow RowId Browser.Dom.Element
     | HoveringContent ContentId
 
 
@@ -23,13 +24,13 @@ clear =
     init
 
 
-pushRow : RowId -> HoverState -> HoverState
-pushRow rowId state =
-    if List.member (HoveringRow rowId) state then
+pushRow : RowId -> Browser.Dom.Element -> HoverState -> HoverState
+pushRow rowId element state =
+    if List.member (HoveringRow rowId element) state then
         state
 
     else
-        HoveringRow rowId :: state
+        HoveringRow rowId element :: state
 
 
 pushContent : ContentId -> HoverState -> HoverState
@@ -51,33 +52,22 @@ pop state =
             []
 
 
+latest : HoverState -> Maybe HoveringItem
+latest =
+    List.head
+
+
 isHoveringContent : ContentId -> HoverState -> Bool
 isHoveringContent contentId state =
     state
-        |> List.head
+        |> latest
         |> Maybe.map
             (\item ->
                 case item of
                     HoveringContent hoveredContentId ->
                         hoveredContentId == contentId
 
-                    HoveringRow _ ->
-                        False
-            )
-        |> Maybe.withDefault False
-
-
-isHoveringRow : RowId -> HoverState -> Bool
-isHoveringRow rowId state =
-    state
-        |> List.head
-        |> Maybe.map
-            (\item ->
-                case item of
-                    HoveringRow hoveredRowId ->
-                        hoveredRowId == rowId
-
-                    HoveringContent _ ->
+                    HoveringRow _ _ ->
                         False
             )
         |> Maybe.withDefault False

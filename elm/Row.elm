@@ -12,6 +12,7 @@ module Row exposing
     , mapBackground
     , mapPadding
     , rowFromString
+    , view
     )
 
 import Block exposing (Block)
@@ -34,7 +35,7 @@ type alias Row =
     { id : RowId
     , layout : RowLayout
     , background : String
-    , alignment : Alignment
+    , alignment : Alignment -- TODO: remove
     , padding : Padding
     }
 
@@ -185,6 +186,37 @@ mapAlignment alignment row =
 
 type alias ViewConfig msg =
     { row : Row
+    , onClickAttribute : List (Attribute msg)
+    , mouseEnter : msg
+    , mouseLeave : msg
+    , blocks : List (Html msg)
+    }
+
+
+view : ViewConfig msg -> Html msg
+view config =
+    table [ style "width" "100%" ]
+        [ tbody []
+            [ tr
+                ([ class "ws-row"
+                 , id (RowId.domId config.row.id)
+                 , onMouseEnter config.mouseEnter
+                 , onMouseLeave config.mouseLeave
+                 ]
+                    ++ Padding.attributes config.row.padding
+                    ++ config.onClickAttribute
+                    ++ [ backgroundAttribute config.row ]
+                )
+                (td [ class "ws-row-space-left", style "min-width" "50px" ] []
+                    :: config.blocks
+                    ++ [ td [ class "ws-row-space-right", style "min-width" "50px" ] [] ]
+                )
+            ]
+        ]
+
+
+type alias EditorConfig msg =
+    { row : Row
     , close : msg
     , remove : msg
     , setBackground : String -> msg
@@ -193,37 +225,37 @@ type alias ViewConfig msg =
     }
 
 
-editor : ViewConfig msg -> Html msg
-editor view =
+editor : EditorConfig msg -> Html msg
+editor config =
     div []
         [ UI.editorHeader Lang.rowEditor
-            [ button [ onClick view.remove ] [ Icon.trash ]
-            , button [ onClick view.close ] [ Icon.close ]
+            [ button [ onClick config.remove ] [ Icon.trash ]
+            , button [ onClick config.close ] [ Icon.close ]
             ]
         , UI.editorSectionInline Lang.color
-            [ Colorpicker.view view.row.background view.setBackground
+            [ Colorpicker.view config.row.background config.setBackground
             ]
         , UI.editorSectionInline Lang.alignment
-            [ viewAlignmentOptions view
+            [ viewAlignmentOptions config
                 [ ( Start, Icon.alignLeft )
                 , ( Center, Icon.alignCenter )
                 , ( End, Icon.alignRight )
                 ]
             ]
-        , Padding.editorTopAndBottom { padding = view.row.padding, onInput = view.setPadding }
+        , Padding.editorTopAndBottom { padding = config.row.padding, onInput = config.setPadding }
         ]
 
 
-viewAlignmentOptions : ViewConfig msg -> List ( Alignment, Html msg ) -> Html msg
-viewAlignmentOptions view options =
+viewAlignmentOptions : EditorConfig msg -> List ( Alignment, Html msg ) -> Html msg
+viewAlignmentOptions config options =
     div [ class "ws-button-group" ]
         (List.map
             (\( alignment, icon ) ->
-                if view.row.alignment == alignment then
-                    button [ class "ws-button ws-active", onClick (view.setAlignment alignment) ] [ icon ]
+                if config.row.alignment == alignment then
+                    button [ class "ws-button ws-active", onClick (config.setAlignment alignment) ] [ icon ]
 
                 else
-                    button [ class "ws-button", onClick (view.setAlignment alignment) ] [ icon ]
+                    button [ class "ws-button", onClick (config.setAlignment alignment) ] [ icon ]
             )
             options
         )

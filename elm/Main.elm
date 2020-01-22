@@ -129,6 +129,7 @@ type Msg
     | DragStopped
       -- Selection
     | SelectRow RowId
+    | GotElementForRowSelection RowId (Result Browser.Dom.Error Browser.Dom.Element)
     | SelectContent ContentId
     | ClearSelection
       -- Editing row
@@ -278,27 +279,17 @@ update msg model =
                     flashErrorDom "Could not find row by ID." err model
 
         MouseEnteredRow rowId ->
-            let
-                model1 =
-                    { model | hover = Hovering.pushRow rowId model.hover }
-            in
-            case model.drag of
-                Dnd.DraggingRow _ _ _ ->
-                    ( model1, Browser.Dom.getElement (RowId.domId rowId) |> Task.attempt (GotElementMouseEnteredRow rowId) )
-
-                Dnd.DraggingContent _ _ _ ->
-                    ( model1, Cmd.none )
-
-                Dnd.ResizingBlocks _ _ _ _ ->
-                    ( model1, Cmd.none )
-
-                Dnd.NotDragging ->
-                    ( model1, Cmd.none )
+            ( model, Browser.Dom.getElement (RowId.domId rowId) |> Task.attempt (GotElementMouseEnteredRow rowId) )
 
         GotElementMouseEnteredRow rowId result ->
             case result of
                 Ok element ->
-                    ( { model | drag = Dnd.mapRowTarget rowId (DomElement.fromBrowser element) model.drag }, Cmd.none )
+                    ( { model
+                        | drag = Dnd.mapRowTarget rowId (DomElement.fromBrowser element) model.drag
+                        , hover = Hovering.pushRow rowId element model.hover
+                      }
+                    , Cmd.none
+                    )
 
                 Err err ->
                     flashErrorDom "Could not find on hover row" err model
@@ -374,7 +365,15 @@ update msg model =
         -- Selection
         -- ========================
         SelectRow rowId ->
-            ( track (\editor -> { editor | selection = Selection.selectRow rowId }) model, Cmd.none )
+            ( model, Browser.Dom.getElement (RowId.domId rowId) |> Task.attempt (GotElementForRowSelection rowId) )
+
+        GotElementForRowSelection rowId result ->
+            case result of
+                Ok element ->
+                    ( track (\editor -> { editor | selection = Selection.selectRow rowId element }) model, Cmd.none )
+
+                Err err ->
+                    flashErrorDom "Could find row by id" err model
 
         SelectContent contentId ->
             ( track (\editor -> { editor | selection = Selection.selectContent contentId }) model, Cmd.none )
@@ -622,118 +621,98 @@ viewEditor model =
     -- Maybe we should add a conditional here to not register onClick when the user
     -- is dragging something?
     div [ class "ws-editor ws-email theme-duo", onClick ClearSelection ]
-        (List.map (viewEditorRow model) model.editor.email.rows)
+        [ div [] (List.map (viewEditorRow model) model.editor.email.rows)
+        , viewEditorRowControls model
+        ]
 
 
 viewEditorRow : Model -> Row -> Html Msg
 viewEditorRow model row =
-    let
-        rowClick =
+    Row.view
+        { row = row
+        , onClickAttribute =
             if Dnd.isDragging model.drag then
                 []
 
             else
                 [ stopPropagationOn "click" (Decode.succeed ( SelectRow row.id, True )) ]
-    in
-    case row.layout of
-        Row.Row100 block ->
-            table [ style "width" "100%" ]
-                [ tbody []
-                    [ tr
-                        ([ class "ws-row"
-                        , id (RowId.domId row.id)
-                        , onMouseEnter (MouseEnteredRow row.id)
-                        , onMouseLeave MouseLeftRow
-                        ]
-                            ++ Padding.attributes row.padding
-                            ++ rowClick
-                            ++ [ Row.backgroundAttribute row ]
-                        )
-                        [ td [ class "ws-block", style "width" "100%" ]
-                            [ viewEditorBlock model block
-                            ]
+        , mouseEnter = MouseEnteredRow row.id
+        , mouseLeave = MouseLeftRow
+        , blocks =
+            case row.layout of
+                Row.Row100 block ->
+                    [ td [ class "ws-block", style "width" "100%" ]
+                        [ viewEditorBlock model block
                         ]
                     ]
-                ]
 
-        Row.Row50x50 left right ->
-            table [ style "width" "100%" ]
-                [ tbody []
-                    [ tr
-                        ([ class "ws-row"
-                        , id (RowId.domId row.id)
-                        , onMouseEnter (MouseEnteredRow row.id)
-                        , onMouseLeave MouseLeftRow
+                Row.Row50x50 left right ->
+                    [ td [ class "ws-block", style "width" (String.fromFloat (left.width * 100) ++ "%") ]
+                        [ viewEditorBlock model left
+                        , viewEditorBlockResizer row.id left.id right.id
                         ]
-                            ++ Padding.attributes row.padding
-                            ++ rowClick
-                            ++ [ Row.backgroundAttribute row ]
-                        )
-                        [ td [ class "ws-block", style "width" (String.fromFloat (left.width * 100) ++ "%") ]
-                            [ viewEditorBlock model left
-                            , viewEditorBlockResizer row.id left.id right.id
-                            ]
-                        , td [ class "ws-block", style "width" (String.fromFloat (right.width * 100) ++ "%") ]
-                            [ viewEditorBlock model right
-                            ]
+                    , td [ class "ws-block", style "width" (String.fromFloat (right.width * 100) ++ "%") ]
+                        [ viewEditorBlock model right
                         ]
                     ]
-                ]
 
-        Row.Row33x33x33 left center right ->
-            table []
-                [ tbody []
-                    [ tr
-                        ([ class "ws-row"
-                        , id (RowId.domId row.id)
-                        , onMouseEnter (MouseEnteredRow row.id)
-                        , onMouseLeave MouseLeftRow
+                Row.Row33x33x33 left center right ->
+                    [ td [ class "ws-block", style "width" (String.fromFloat (left.width * 100) ++ "%") ]
+                        [ viewEditorBlock model left
+                        , viewEditorBlockResizer row.id left.id center.id
                         ]
-                            ++ Padding.attributes row.padding
-                            ++ rowClick
-                            ++ [ Row.backgroundAttribute row ]
-                        )
-                        [ td [ class "ws-block", style "width" (String.fromFloat (left.width * 100) ++ "%") ]
-                            [ viewEditorBlock model left
-                            , viewEditorBlockResizer row.id left.id center.id
-                            ]
-                        , td [ class "ws-block", style "width" (String.fromFloat (center.width * 100) ++ "%") ]
-                            [ viewEditorBlock model center
-                            , viewEditorBlockResizer row.id center.id right.id
-                            ]
-                        , td [ class "ws-block", style "width" (String.fromFloat (right.width * 100) ++ "%") ]
-                            [ viewEditorBlock model right
-                            ]
+                    , td [ class "ws-block", style "width" (String.fromFloat (center.width * 100) ++ "%") ]
+                        [ viewEditorBlock model center
+                        , viewEditorBlockResizer row.id center.id right.id
+                        ]
+                    , td [ class "ws-block", style "width" (String.fromFloat (right.width * 100) ++ "%") ]
+                        [ viewEditorBlock model right
                         ]
                     ]
-                ]
+        }
 
 
-viewEditorRowControls : Model -> Row -> Html Msg
-viewEditorRowControls model row =
+viewEditorRowControls : Model -> Html Msg
+viewEditorRowControls model =
     if Dnd.isDragging model.drag then
         text ""
 
-    else if Selection.isRowSelected row.id model.editor.selection then
-        div [ class "ws-row-hover ws-selected" ]
-            [ div
-                [ class "ws-move-icon"
-                , Dnd.onMouseDown (DragExistingRowStarted row.id)
-                ]
-                [ Icon.move ]
-            ]
-
-    else if Hovering.isHoveringRow row.id model.hover then
-        div [ class "ws-row-hover" ]
-            [ div
-                [ class "ws-move-icon"
-                , Dnd.onMouseDown (DragExistingRowStarted row.id)
-                ]
-                [ Icon.move ]
-            ]
-
     else
-        text ""
+        case model.editor.selection of
+            Selection.RowSelected rowId element ->
+                div
+                    [ class "ws-row-hover ws-selected"
+                    , style "top" (String.fromFloat element.element.y ++ "px")
+                    , style "left" (String.fromFloat element.element.x ++ "px")
+                    , style "width" (String.fromFloat element.element.width ++ "px")
+                    , style "height" (String.fromFloat element.element.height ++ "px")
+                    ]
+                    [ div
+                        [ class "ws-move-icon"
+                        , Dnd.onMouseDown (DragExistingRowStarted rowId)
+                        ]
+                        [ Icon.move ]
+                    ]
+
+            _ ->
+                case Hovering.latest model.hover of
+                    Just (Hovering.HoveringRow rowId element) ->
+                        div
+                            [ class "ws-row-hover"
+                            , style "top" (String.fromFloat element.element.y ++ "px")
+                            , style "left" (String.fromFloat element.element.x ++ "px")
+                            , style "width" (String.fromFloat element.element.width ++ "px")
+                            , style "height" (String.fromFloat element.element.height ++ "px")
+                            ]
+                            [ div
+                                [ class "ws-move-icon"
+                                , Dnd.onMouseDown (DragExistingRowStarted rowId)
+                                ]
+                                [ Icon.move ]
+                            ]
+
+                    _ ->
+                        text ""
 
 
 viewEditorBlock : Model -> Block -> Html Msg
@@ -910,7 +889,7 @@ viewRightPanel model =
         Selection.Nothing ->
             viewDraggableItems model
 
-        Selection.RowSelected rowId ->
+        Selection.RowSelected rowId element ->
             case Editor.findRow rowId model.editor.email of
                 Just row ->
                     Row.editor

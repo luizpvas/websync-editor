@@ -124,53 +124,38 @@
   width: 100%;
   margin: 0 auto;
   background: $gray200;
-
-  .ws-row-hover {
-    z-index: 9;
-    pointer-events: none;
-    position: absolute;
-    top: 0;
-    left: 0;
-    margin-left: -2px;
-    margin-top: -2px;
-    width: calc(100% + 4px);
-    height: calc(100% + 4px);
-    border: 2px solid $blue300;
-    border-radius: 3px;
-    box-sizing: border-box;
-
-    &.ws-selected {
-      border-color: $blue500;
-
-      .ws-move-icon {
-        background: $blue500;
-      }
-    }
-
-    .ws-move-icon {
-      cursor: grab;
-      padding: 3px;
-      position: absolute;
-      pointer-events: auto;
-      height: 18px;
-      background: $blue300;
-      top: 0;
-      right: 0;
-      color: $white;
-      border-top-left-radius: 2px;
-      border-bottom-left-radius: 2px;
-    }
-  }
 }
 
-.ws-row-fade-option {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 45px;
-  height: 45px;
-  border: 1px solid blue;
-  margin-right: 5px;
+.ws-row-hover {
+  z-index: 9;
+  pointer-events: none;
+  position: absolute;
+
+  border: 2px solid $blue300;
+  border-radius: 3px;
+  box-sizing: border-box;
+
+  &.ws-selected {
+    border-color: $blue500;
+
+    .ws-move-icon {
+      background: $blue500;
+    }
+  }
+
+  .ws-move-icon {
+    pointer-events: none;
+    cursor: grab;
+    padding: 3px;
+    position: absolute;
+    height: 18px;
+    background: $blue300;
+    top: 0;
+    right: 0;
+    color: $white;
+    border-top-left-radius: 2px;
+    border-bottom-left-radius: 2px;
+  }
 }
 
 .ws-block {
