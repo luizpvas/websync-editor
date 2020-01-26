@@ -337,10 +337,6 @@ update msg model =
         GotElementMouseEnteredContent contentId result ->
             case result of
                 Ok element ->
-                    let
-                        _ =
-                            Debug.log "from the side" element
-                    in
                     ( { model | drag = Dnd.mapContentTarget contentId (DomElement.fromBrowser element) model.drag }, Cmd.none )
 
                 Err err ->
@@ -621,9 +617,7 @@ viewEditor model =
     -- Maybe we should add a conditional here to not register onClick when the user
     -- is dragging something?
     div [ class "ws-editor ws-email theme-duo", onClick ClearSelection ]
-        [ div [] (List.map (viewEditorRow model) model.editor.email.rows)
-        , viewEditorRowControls model
-        ]
+        (List.map (viewEditorRow model) model.editor.email.rows)
 
 
 viewEditorRow : Model -> Row -> Html Msg
@@ -641,23 +635,29 @@ viewEditorRow model row =
         , blocks =
             case row.layout of
                 Row.Row100 block ->
-                    [ td [ class "ws-block", style "width" "100%" ]
+                    [ td [] [ viewEditorRowControls model row ]
+                    , td [ class "ws-block", style "width" "100%" ]
                         [ viewEditorBlock model block
                         ]
                     ]
 
                 Row.Row50x50 left right ->
-                    [ td [ class "ws-block", style "width" (String.fromFloat (left.width * 100) ++ "%") ]
+                    [ td [] [ viewEditorRowControls model row ]
+                    , td [ class "ws-block", style "width" (String.fromFloat (left.width * 100) ++ "%") ]
                         [ viewEditorBlock model left
                         , viewEditorBlockResizer row.id left.id right.id
                         ]
-                    , td [ class "ws-block", style "width" (String.fromFloat (right.width * 100) ++ "%") ]
+                    , td
+                        [ class "ws-block"
+                        , style "width" (String.fromFloat (right.width * 100) ++ "%")
+                        ]
                         [ viewEditorBlock model right
                         ]
                     ]
 
                 Row.Row33x33x33 left center right ->
-                    [ td [ class "ws-block", style "width" (String.fromFloat (left.width * 100) ++ "%") ]
+                    [ td [] [ viewEditorRowControls model row ]
+                    , td [ class "ws-block", style "width" (String.fromFloat (left.width * 100) ++ "%") ]
                         [ viewEditorBlock model left
                         , viewEditorBlockResizer row.id left.id center.id
                         ]
@@ -672,44 +672,52 @@ viewEditorRow model row =
         }
 
 
-viewEditorRowControls : Model -> Html Msg
-viewEditorRowControls model =
+viewEditorRowControls : Model -> Row -> Html Msg
+viewEditorRowControls model row =
     if Dnd.isDragging model.drag then
         text ""
 
     else
         case model.editor.selection of
             Selection.RowSelected rowId element ->
-                div
-                    [ class "ws-row-hover ws-selected"
-                    , style "top" (String.fromFloat element.element.y ++ "px")
-                    , style "left" (String.fromFloat element.element.x ++ "px")
-                    , style "width" (String.fromFloat element.element.width ++ "px")
-                    , style "height" (String.fromFloat element.element.height ++ "px")
-                    ]
-                    [ div
-                        [ class "ws-move-icon"
-                        , Dnd.onMouseDown (DragExistingRowStarted rowId)
+                if row.id == rowId then
+                    div
+                        [ class "ws-row-hover ws-selected"
+                        , style "top" (String.fromFloat element.element.y ++ "px")
+                        , style "left" (String.fromFloat element.element.x ++ "px")
+                        , style "width" (String.fromFloat element.element.width ++ "px")
+                        , style "height" (String.fromFloat element.element.height ++ "px")
                         ]
-                        [ Icon.move ]
-                    ]
+                        [ div
+                            [ class "ws-move-icon"
+                            , Dnd.onMouseDown (DragExistingRowStarted rowId)
+                            ]
+                            [ Icon.move ]
+                        ]
+
+                else
+                    text ""
 
             _ ->
-                case Hovering.latest model.hover of
-                    Just (Hovering.HoveringRow rowId element) ->
-                        div
-                            [ class "ws-row-hover"
-                            , style "top" (String.fromFloat element.element.y ++ "px")
-                            , style "left" (String.fromFloat element.element.x ++ "px")
-                            , style "width" (String.fromFloat element.element.width ++ "px")
-                            , style "height" (String.fromFloat element.element.height ++ "px")
-                            ]
-                            [ div
-                                [ class "ws-move-icon"
-                                , Dnd.onMouseDown (DragExistingRowStarted rowId)
+                case model.hover of
+                    Hovering.HoveringRow rowId element ->
+                        if row.id == rowId then
+                            div
+                                [ class "ws-row-hover"
+                                , style "top" (String.fromFloat element.element.y ++ "px")
+                                , style "left" (String.fromFloat element.element.x ++ "px")
+                                , style "width" (String.fromFloat element.element.width ++ "px")
+                                , style "height" (String.fromFloat element.element.height ++ "px")
                                 ]
-                                [ Icon.move ]
-                            ]
+                                [ div
+                                    [ class "ws-move-icon"
+                                    , Dnd.onMouseDown (DragExistingRowStarted rowId)
+                                    ]
+                                    [ Icon.move ]
+                                ]
+
+                        else
+                            text ""
 
                     _ ->
                         text ""

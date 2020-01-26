@@ -195,22 +195,27 @@ type alias ViewConfig msg =
 
 view : ViewConfig msg -> Html msg
 view config =
-    table [ style "width" "100%" ]
-        [ tbody []
-            [ tr
-                ([ class "ws-row"
-                 , id (RowId.domId config.row.id)
-                 , onMouseEnter config.mouseEnter
-                 , onMouseLeave config.mouseLeave
-                 ]
-                    ++ Padding.attributes config.row.padding
-                    ++ config.onClickAttribute
-                    ++ [ backgroundAttribute config.row ]
-                )
-                (td [ class "ws-row-space-left", style "min-width" "50px" ] []
-                    :: config.blocks
-                    ++ [ td [ class "ws-row-space-right", style "min-width" "50px" ] [] ]
-                )
+    div []
+        [ table
+            ([ id (RowId.domId config.row.id)
+             , onMouseEnter config.mouseEnter
+             , onMouseLeave config.mouseLeave
+             , style "width" "100%"
+             , attribute "cellspacing" "0"
+             , attribute "border" "0"
+             , attribute "cellpadding" "0"
+             ]
+                ++ config.onClickAttribute
+                ++ Padding.attributes config.row.padding
+                ++ [ backgroundAttribute config.row ]
+            )
+            [ tbody []
+                [ tr [ class "ws-row" ]
+                    (td [ class "ws-row-space-left", style "min-width" "50px" ] []
+                        :: config.blocks
+                        ++ [ td [ class "ws-row-space-right", style "min-width" "50px" ] [] ]
+                    )
+                ]
             ]
         ]
 

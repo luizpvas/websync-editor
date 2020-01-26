@@ -1,22 +1,20 @@
-module Hovering exposing (HoverState, HoveringItem(..), clear, init, isHoveringContent, latest, pop, pushContent, pushRow)
+module Hovering exposing (HoverState(..), clear, init, isHoveringContent, pop, pushContent, pushRow)
 
 import Browser.Dom
 import ContentId exposing (ContentId)
 import RowId exposing (RowId)
 
 
-type alias HoverState =
-    List HoveringItem
-
-
-type HoveringItem
-    = HoveringRow RowId Browser.Dom.Element
-    | HoveringContent ContentId
+type HoverState
+    = NotHovering
+    | HoveringRow RowId Browser.Dom.Element
+    | HoveringContentWaitingForRowElement ContentId
+    | HoveringContent ContentId RowId Browser.Dom.Element
 
 
 init : HoverState
 init =
-    []
+    NotHovering
 
 
 clear : HoverState
@@ -26,48 +24,57 @@ clear =
 
 pushRow : RowId -> Browser.Dom.Element -> HoverState -> HoverState
 pushRow rowId element state =
-    if List.member (HoveringRow rowId element) state then
-        state
+    case state of
+        NotHovering ->
+            HoveringRow rowId element
 
-    else
-        HoveringRow rowId element :: state
+        HoveringRow _ _ ->
+            HoveringRow rowId element
+
+        HoveringContentWaitingForRowElement contentId ->
+            HoveringContent contentId rowId element
+
+        HoveringContent _ _ _ ->
+            HoveringRow rowId element
 
 
 pushContent : ContentId -> HoverState -> HoverState
 pushContent contentId state =
-    if List.member (HoveringContent contentId) state then
-        state
+    case state of
+        NotHovering ->
+            HoveringContentWaitingForRowElement contentId
 
-    else
-        HoveringContent contentId :: state
+        HoveringRow rowId element ->
+            HoveringContent contentId rowId element
+
+        HoveringContentWaitingForRowElement _ ->
+            HoveringContentWaitingForRowElement contentId
+
+        HoveringContent _ rowId element ->
+            HoveringContent contentId rowId element
 
 
 pop : HoverState -> HoverState
 pop state =
     case state of
-        _ :: tail ->
-            tail
+        NotHovering ->
+            NotHovering
 
-        [] ->
-            []
+        HoveringRow _ _ ->
+            NotHovering
 
+        HoveringContentWaitingForRowElement _ ->
+            NotHovering
 
-latest : HoverState -> Maybe HoveringItem
-latest =
-    List.head
+        HoveringContent _ rowId element ->
+            HoveringRow rowId element
 
 
 isHoveringContent : ContentId -> HoverState -> Bool
 isHoveringContent contentId state =
-    state
-        |> latest
-        |> Maybe.map
-            (\item ->
-                case item of
-                    HoveringContent hoveredContentId ->
-                        hoveredContentId == contentId
+    case state of
+        HoveringContent hoveringContentId _ _ ->
+            contentId == hoveringContentId
 
-                    HoveringRow _ _ ->
-                        False
-            )
-        |> Maybe.withDefault False
+        _ ->
+            False

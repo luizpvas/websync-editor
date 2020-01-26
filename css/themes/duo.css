@@ -2,7 +2,6 @@
   font-size: 15px;
   background: #fff;
   font-family: sans-serif;
-  max-width: 960px;
   margin: 0 auto;
 }
 
@@ -13,46 +12,6 @@
 
 .theme-duo h1 {
   margin: 0;
-}
-
-.theme-duo .ws-row {
-  position: relative;
-  box-sizing: border-box;
-}
-
-.theme-duo .ws-row.ws-row-primary {
-  background: white;
-  fill: white;
-  color: black;
-}
-
-.theme-duo .ws-row.ws-row-primary-inverted {
-  background: #1cb0f6;
-  fill: #1cb0f6;
-  color: white;
-}
-
-.theme-duo .ws-row.ws-row-primary-inverted .ql-size-title {
-  color: white;
-}
-
-.theme-duo .ws-row.ws-row-secondary-inverted {
-  background: #707070;
-  fill: #707070;
-  color: white;
-}
-
-.theme-duo .ws-row.ws-row-secondary-inverted .ql-size-title {
-  color: white;
-}
-
-.theme-duo .ws-row-fade {
-  position: absolute;
-  z-index: 8;
-  height: 14px;
-  width: 100%;
-  bottom: -14px;
-  left: 0;
 }
 
 .theme-duo .ws-button-container {
@@ -92,15 +51,6 @@
 .theme-duo .ql-editor {
   padding: 0px;
   font-size: 15px;
-}
-
-.theme-duo .ws-row {
-  background: #fff;
-}
-
-.theme-duo .ws-row-blocks {
-  display: flex;
-  align-items: flex-start;
 }
 
 .theme-duo .ql-align-left {
