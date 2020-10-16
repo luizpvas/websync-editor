@@ -564,8 +564,8 @@ viewToolbar model =
                 [ Dropdown.view
                     (div [ class "ws-toolbar-button" ] [ text "Preview..." ])
                     (div []
-                        [ div [ onClick (OpenPreview "500px") ] [ text "Mobile" ]
-                        , div [ onClick (OpenPreview "90%") ] [ text "Desktop" ]
+                        [ div [ class "ws-dropdown-option", onClick (OpenPreview "500px") ] [ text "Mobile" ]
+                        , div [ class "ws-dropdown-option", onClick (OpenPreview "90%") ] [ text "Desktop" ]
                         ]
                     )
                 , viewUndoButton model
@@ -643,13 +643,18 @@ viewEditorRow model row =
 
                 Row.Row50x50 left right ->
                     [ td [] [ viewEditorRowControls model row ]
-                    , td [ class "ws-block", style "width" (String.fromFloat (left.width * 100) ++ "%") ]
+                    , td
+                        [ class "ws-block"
+                        , style "width" (String.fromFloat (left.width * 100) ++ "%")
+                        , Row.alignmentAttribute row
+                        ]
                         [ viewEditorBlock model left
                         , viewEditorBlockResizer row.id left.id right.id
                         ]
                     , td
                         [ class "ws-block"
                         , style "width" (String.fromFloat (right.width * 100) ++ "%")
+                        , Row.alignmentAttribute row
                         ]
                         [ viewEditorBlock model right
                         ]
@@ -657,15 +662,27 @@ viewEditorRow model row =
 
                 Row.Row33x33x33 left center right ->
                     [ td [] [ viewEditorRowControls model row ]
-                    , td [ class "ws-block", style "width" (String.fromFloat (left.width * 100) ++ "%") ]
+                    , td
+                        [ class "ws-block"
+                        , style "width" (String.fromFloat (left.width * 100) ++ "%")
+                        , Row.alignmentAttribute row
+                        ]
                         [ viewEditorBlock model left
                         , viewEditorBlockResizer row.id left.id center.id
                         ]
-                    , td [ class "ws-block", style "width" (String.fromFloat (center.width * 100) ++ "%") ]
+                    , td
+                        [ class "ws-block"
+                        , style "width" (String.fromFloat (center.width * 100) ++ "%")
+                        , Row.alignmentAttribute row
+                        ]
                         [ viewEditorBlock model center
                         , viewEditorBlockResizer row.id center.id right.id
                         ]
-                    , td [ class "ws-block", style "width" (String.fromFloat (right.width * 100) ++ "%") ]
+                    , td
+                        [ class "ws-block"
+                        , style "width" (String.fromFloat (right.width * 100) ++ "%")
+                        , Row.alignmentAttribute row
+                        ]
                         [ viewEditorBlock model right
                         ]
                     ]

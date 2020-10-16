@@ -35,7 +35,7 @@ type alias Row =
     { id : RowId
     , layout : RowLayout
     , background : String
-    , alignment : Alignment -- TODO: remove
+    , alignment : Alignment
     , padding : Padding
     }
 
@@ -85,13 +85,13 @@ alignmentAttribute : Row -> Attribute msg
 alignmentAttribute row =
     case row.alignment of
         Start ->
-            style "align-items" "flex-start"
+            attribute "valign" "top"
 
         Center ->
-            style "align-items" "center"
+            attribute "valign" "middle"
 
         End ->
-            style "align-items" "flex-end"
+            attribute "valign" "bottom"
 
 
 backgroundAttribute : Row -> Attribute msg
@@ -242,9 +242,9 @@ editor config =
             ]
         , UI.editorSectionInline Lang.alignment
             [ viewAlignmentOptions config
-                [ ( Start, Icon.alignLeft )
-                , ( Center, Icon.alignCenter )
-                , ( End, Icon.alignRight )
+                [ ( Start, Icon.valignTop )
+                , ( Center, Icon.valignCenter )
+                , ( End, Icon.valignBottom )
                 ]
             ]
         , Padding.editorTopAndBottom { padding = config.row.padding, onInput = config.setPadding }

@@ -6,10 +6,6 @@ module Icon exposing
     , close
     , divider
     , download
-    , fadeNone
-    , fadeTiltLeft
-    , fadeTiltRight
-    , fadeWave
     , illustration
     , image
     , move
@@ -18,6 +14,9 @@ module Icon exposing
     , text
     , trash
     , undo
+    , valignBottom
+    , valignCenter
+    , valignTop
     , youtube
     )
 
@@ -55,6 +54,21 @@ alignCenter =
     svg [ viewBox "0 0 20 20", height "18" ] [ Svg.path [ d "M1 1h18v2H1V1zm0 8h18v2H1V9zm0 8h18v2H1v-2zM4 5h12v2H4V5zm0 8h12v2H4v-2z" ] [] ]
 
 
+valignTop : Svg msg
+valignTop =
+    svg [ fill "none", viewBox "0 0 24 24", width "18" ] [ Svg.path [ fill "#747474", d "M0 2h24v6H0z" ] [], Svg.path [ fill "#C9C9C9", d "M0 10h24v5H0zM0 17h24v5H0z" ] [] ]
+
+
+valignCenter : Svg msg
+valignCenter =
+    svg [ fill "none", viewBox "0 0 24 24", width "18" ] [ Svg.path [ fill "#C9C9C9", d "M0 2h24v5H0z" ] [], Svg.path [ fill "#747474", d "M0 9h24v6H0z" ] [], Svg.path [ fill "#C9C9C9", d "M0 17h24v5H0z" ] [] ]
+
+
+valignBottom : Svg msg
+valignBottom =
+    svg [ fill "none", viewBox "0 0 24 24", width "18" ] [ Svg.path [ fill "#C9C9C9", d "M0 2h24v5H0zM0 9h24v5H0z" ] [], Svg.path [ fill "#747474", d "M0 16h24v6H0z" ] [] ]
+
+
 button : Svg msg
 button =
     svg [ fill "none", viewBox "0 0 24 24", width "24" ] [ Svg.path [ fill "currentColor", fillRule "evenodd", d "M21 8H3a1 1 0 00-1 1v6c0 .6.4 1 1 1h18c.6 0 1-.4 1-1V9c0-.6-.4-1-1-1zM3 6a3 3 0 00-3 3v6a3 3 0 003 3h18a3 3 0 003-3V9a3 3 0 00-3-3H3z", clipRule "evenodd" ] [] ]
@@ -83,26 +97,6 @@ youtube =
 illustration : Svg msg
 illustration =
     svg [ viewBox "0 0 478 478", height "18" ] [ Svg.path [ fill "currentColor", d "M476 231c-2-3-4-6-7-7l-67-36 67-36a17 17 0 000-30L247 2c-5-3-11-3-16 0L9 122a17 17 0 000 30l67 36-67 36a17 17 0 000 30l67 36-67 36a17 17 0 000 30l222 120c5 3 11 3 16 0l222-120a17 17 0 000-30l-67-36 67-36c8-5 11-15 7-23zM53 137L239 36l186 101-186 100L53 137zm372 204L239 441 53 341l59-31 119 63c5 3 11 3 16 0l119-63 59 31zm-186-2L53 239l59-32 119 64c5 3 11 3 16 0l119-64 59 32-186 100z" ] [] ]
-
-
-fadeWave : Svg msg
-fadeWave =
-    svg [ fill "none", viewBox "0 0 30 30", width "40" ] [ Svg.path [ fill "#818181", d "M29 11H1v5.4c1 .8 3.3 3.1 8.9 2.5 4.2-.5 5.1-1 10.2-2.5 4-1.1 8 1.3 8.9 2.5V11z" ] [] ]
-
-
-fadeNone : Svg msg
-fadeNone =
-    svg [ fill "none", viewBox "0 0 30 30", width "40" ] [ Svg.path [ fill "#818181", d "M1 11h28v8H1z" ] [] ]
-
-
-fadeTiltRight : Svg msg
-fadeTiltRight =
-    svg [ fill "none", viewBox "0 0 30 30", width "40" ] [ Svg.path [ fill "#818181", d "M29 11H1l28 7.9V11z" ] [] ]
-
-
-fadeTiltLeft : Svg msg
-fadeTiltLeft =
-    svg [ fill "none", viewBox "0 0 30 30", width "40" ] [ Svg.path [ fill "#818181", d "M1 11h28L1 18.9V11z" ] [] ]
 
 
 download : Svg msg

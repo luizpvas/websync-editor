@@ -1,8 +1,48 @@
 .ws-dropdown {
   display: none;
   position: absolute;
-  top: 0;
-  right: 0;
-  border: 1px solid;
+  z-index: 11;
+  top: 30px;
+  left: 0;
+  border: 1px solid $gray700;
+  border-radius: 2px;
+  padding: 4px;
   background: $white;
+  min-width: 150px;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+}
+
+.ws-dropdown:after {
+  position: absolute;
+  content: "";
+  top: -8px;
+  left: 10px;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 0 7.5px 8px 7.5px;
+  border-color: transparent transparent white transparent;
+}
+
+.ws-dropdown-option {
+  font-size: 14px;
+  padding: 4px 10px;
+  border-radius: 2px;
+  cursor: pointer;
+
+  &:hover {
+    background: $gray100;
+  }
+}
+
+.ws-dropdown:before {
+  position: absolute;
+  content: "";
+  top: -9px;
+  left: 9px;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 0 8.5px 9px 8.5px;
+  border-color: transparent transparent black transparent;
 }
